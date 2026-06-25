@@ -1,4 +1,4 @@
-# CyberAwarenessBot
+ # CyberAwarenessBot
 
 CyberAwarenessBot is a simple WPF desktop chatbot prototype that provides cybersecurity tips and guidance. It demonstrates a small, modular architecture with a UI, a lightweight rule-based sentiment analyzer, a keyword-driven response provider, and an in-memory user memory store.
 

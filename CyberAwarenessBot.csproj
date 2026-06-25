@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Summary of comments:
+     - This project file defines build settings, references and items for the CyberAwarenessBot WPF application.
+     - Inline comments explain each section and important elements.
+     - Do not remove required MSBuild elements; comments are informational only.
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> <!-- Root MSBuild project element with schema -->
+  <!-- Import the common MSBuild properties and targets if available on the system -->
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <!-- Global property group: defaults and project-wide settings -->
+  <PropertyGroup>
+    <!-- Default configuration when not specified: Debug -->
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <!-- Default platform when not specified: AnyCPU -->
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <!-- Unique project identifier (GUID) used by Visual Studio -->
+    <ProjectGuid>{42EDD861-21DD-4B59-AA3D-C595B9CB0C53}</ProjectGuid>
+    <!-- Output type: WinExe means a Windows GUI application -->
+    <OutputType>WinExe</OutputType>
+    <!-- Root namespace for generated types -->
+    <RootNamespace>CyberAwarenessBot</RootNamespace>
+    <!-- Assembly name produced by the build -->
+    <AssemblyName>CyberAwarenessBot</AssemblyName>
+    <!-- Target .NET Framework version for this project -->
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <!-- File alignment for linker output -->
+    <FileAlignment>512</FileAlignment>
+    <!-- Project type GUIDs (WPF + C#) used by Visual Studio to identify project kinds -->
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <!-- Compiler warning level -->
+    <WarningLevel>4</WarningLevel>
+    <!-- Allow automatic generation of binding redirects to resolve assembly version conflicts -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- Enable deterministic builds when supported -->
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <!-- Debug-specific properties -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <!-- Target platform for the build -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <!-- Produce debug symbols (.pdb) -->
+    <DebugSymbols>true</DebugSymbols>
+    <!-- Type of debug information to generate -->
+    <DebugType>full</DebugType>
+    <!-- Don't optimize in debug builds -->
+    <Optimize>false</Optimize>
+    <!-- Output folder for debug build outputs -->
+    <OutputPath>bin\Debug\</OutputPath>
+    <!-- Conditional compilation symbols for debug -->
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <!-- Error reporting mode -->
+    <ErrorReport>prompt</ErrorReport>
+    <!-- Compiler warning level for this configuration -->
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- Release-specific properties -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <!-- Target platform for the build -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <!-- Minimal debug information in release -->
+    <DebugType>pdbonly</DebugType>
+    <!-- Enable optimizations for better performance -->
+    <Optimize>true</Optimize>
+    <!-- Output folder for release build outputs -->
+    <OutputPath>bin\Release\</OutputPath>
+    <!-- Conditional compilation symbols for release -->
+    <DefineConstants>TRACE</DefineConstants>
+    <!-- Error reporting mode -->
+    <ErrorReport>prompt</ErrorReport>
+    <!-- Compiler warning level for release -->
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <!-- References to .NET assemblies required by the project -->
+  <ItemGroup>
+    <Reference Include="System" /> <!-- Base system library -->
+    <Reference Include="System.Data" /> <!-- Data access APIs -->
+    <Reference Include="System.Xml" /> <!-- XML support -->
+    <Reference Include="Microsoft.CSharp" /> <!-- C# runtime binder for dynamic -->
+    <Reference Include="System.Core" /> <!-- Core LINQ and concurrency libraries -->
+    <Reference Include="System.Xml.Linq" /> <!-- LINQ to XML support -->
+    <Reference Include="System.Data.DataSetExtensions" /> <!-- DataSet extensions -->
+    <Reference Include="System.Net.Http" /> <!-- HTTP client support -->
+    <Reference Include="System.Xaml"> <!-- XAML support reference -->
+      <RequiredTargetFramework>4.0</RequiredTargetFramework> <!-- Required target for System.Xaml -->
+    </Reference>
+    <Reference Include="WindowsBase" /> <!-- WPF base types -->
+    <Reference Include="PresentationCore" /> <!-- WPF presentation core -->
+    <Reference Include="PresentationFramework" /> <!-- WPF controls and windowing -->
+  </ItemGroup>
+  <!-- Compile and content items included in the project -->
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml"> <!-- Application definition (XAML) -->
+      <Generator>MSBuild:Compile</Generator> <!-- Instruct MSBuild to compile XAML -->
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="Interfaces\IMemory.cs" /> <!-- Interface for user memory -->
+    <Compile Include="Services\ChatbotEngine.cs" /> <!-- Core engine that processes messages -->
+    <Compile Include="Services\KeywordResponseProvider.cs" /> <!-- Keyword-based responses provider -->
+    <Compile Include="Services\SentimentAnalyzer.cs" /> <!-- Service that analyzes sentiment -->
+    <Page Include="MainWindow.xaml"> <!-- Main window XAML page -->
+      <Generator>MSBuild:Compile</Generator> <!-- Compile the XAML page -->
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs"> <!-- Code-behind for App.xaml -->
+      <DependentUpon>App.xaml</DependentUpon> <!-- Indicates the code-behind relationship -->
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Interfaces\IResponseProvider.cs" /> <!-- Interface for response providers -->
+    <Compile Include="MainWindow.xaml.cs"> <!-- Code-behind for MainWindow.xaml -->
+      <DependentUpon>MainWindow.xaml</DependentUpon> <!-- Indicates code-behind linkage -->
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <!-- Additional compile-time items and resources -->
+  <ItemGroup>
+    <Compile Include="Models\ConversationState.cs" /> <!-- Model storing current conversation state -->
+    <Compile Include="Models\SentimentResult.cs" /> <!-- Model for sentiment analysis results -->
+    <Compile Include="Models\UserMemory.cs" /> <!-- Model representing persisted user memory -->
+    <Compile Include="Properties\AssemblyInfo.cs"> <!-- Assembly metadata source file -->
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs"> <!-- Auto-generated resources designer -->
+      <AutoGen>True</AutoGen> <!-- Marked auto-generated -->
+      <DesignTime>True</DesignTime> <!-- Used by design-time tools -->
+      <DependentUpon>Resources.resx</DependentUpon> <!-- Linked to the resx file -->
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs"> <!-- Auto-generated settings designer -->
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx"> <!-- Embedded resource (resx) -->
+      <Generator>ResXFileCodeGenerator</Generator> <!-- Generator for strongly-typed resources -->
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput> <!-- Expected generated file name -->
+    </EmbeddedResource>
+    <None Include="Properties\Settings.settings"> <!-- Settings file used by the Settings designer -->
+      <Generator>SettingsSingleFileGenerator</Generator> <!-- Generator for settings -->
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput> <!-- Expected generated file name -->
+    </None>
+  </ItemGroup>
+  <!-- Non-compiled content files -->
+  <ItemGroup>
+    <None Include="App.config" /> <!-- Application configuration file -->
+  </ItemGroup>
+  <!-- Ensure the Resources folder exists in the project explorer (empty folder placeholder) -->
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+  <!-- Import the C# targets which drive compilation and build tasks -->
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

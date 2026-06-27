@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Media; // Add this for SoundPlayer
 
 namespace CyberAwarenessBot
 {
@@ -70,8 +71,32 @@ namespace CyberAwarenessBot
         {
             string welcome = engine.GetWelcomeMessage();
             AddBotMessage(welcome);
+            PlayGreetingAudio(); // Play the greeting audio
+        }
 
-           
+        // Add this new method for audio playback
+        private void PlayGreetingAudio()
+        {
+            try
+            {
+                string audioPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "greeting.wav");
+                
+                if (System.IO.File.Exists(audioPath))
+                {
+                    using (SoundPlayer player = new SoundPlayer(audioPath))
+                    {
+                        player.PlaySync(); // Play audio synchronously
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Audio file not found: {audioPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error playing audio: {ex.Message}");
+            }
         }
         
 

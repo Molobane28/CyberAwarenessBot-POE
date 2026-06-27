@@ -40,6 +40,12 @@ namespace CyberAwarenessBot
             AddWelcomeMessage();
             RefreshTasks();
             RefreshActivityLog();
+            this.Loaded += MainWindow_Loaded;
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            PlayGreetingAudioAsync();
         }
 
         private void InitializeServices()
@@ -71,7 +77,6 @@ namespace CyberAwarenessBot
         {
             string welcome = engine.GetWelcomeMessage();
             AddBotMessage(welcome);
-            PlayGreetingAudio(); // Play the greeting audio
         }
 
         // Add this new method for audio playback
@@ -97,6 +102,16 @@ namespace CyberAwarenessBot
             {
                 System.Diagnostics.Debug.WriteLine($"Error playing audio: {ex.Message}");
             }
+        }
+
+        private void PlayGreetingAudioAsync()
+        {
+            System.Threading.Thread audioThread = new System.Threading.Thread(() =>
+            {
+                PlayGreetingAudio();
+            });
+            audioThread.IsBackground = true;
+            audioThread.Start();
         }
         
 

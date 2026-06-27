@@ -21,6 +21,10 @@ namespace CyberAwarenessBot
 
         private int logDisplayCount = 5;
 
+        // Track reminder conversation state
+        private int pendingTaskIdForReminder = -1;
+        private bool awaitingReminderResponse = false;
+
         private const string AsciiArt = @"
 ╔══════════════════════════════╗
 ║  ██████╗██╗   ██╗██████╗     ║
@@ -250,6 +254,66 @@ namespace CyberAwarenessBot
             var intent = nlp.Process(input);
             activityLogger.Log("NLP", $"Input processed with intent '{intent.Intent}': {input}");
 
+            // Handle reminder conversation flow
+            if (awaitingReminderResponse && pendingTaskIdForReminder > 0)
+            {
+                awaitingReminderResponse = false;
+
+                // First, try to parse any natural language time in the user's reply
+                if (taskAssistant.TryParseNaturalLanguageReminder(input, out DateTime parsedReminder))
+                {
+                    taskAssistant.SetReminder(pendingTaskIdForReminder, parsedReminder);
+                    string friendlyTime = TaskAssistantService.FormatReminderForUser(parsedReminder);
+                    activityLogger.Log("Reminder", $"Reminder set for task #{pendingTaskIdForReminder}: {friendlyTime}");
+                    pendingTaskIdForReminder = -1;
+                    RefreshTasks();
+                    RefreshActivityLog();
+                    return $"✓ Got it! I'll remind you {friendlyTime}.";
+                }
+
+                // User said "no" to reminder
+                if (intent.Intent == "noreminder")
+                {
+                    activityLogger.Log("Reminder", $"User declined reminder for task #{pendingTaskIdForReminder}.");
+                    pendingTaskIdForReminder = -1;
+                    RefreshTasks();
+                    return "No problem! Task saved without a reminder.";
+                }
+
+                // User explicitly provided a time intent (fallback)
+                if (intent.Intent == "remindertime")
+                {
+                    if (taskAssistant.TryParseNaturalLanguageReminder(input, out DateTime reminderTime))
+                    {
+                        taskAssistant.SetReminder(pendingTaskIdForReminder, reminderTime);
+                        string friendlyTime = TaskAssistantService.FormatReminderForUser(reminderTime);
+                        activityLogger.Log("Reminder", $"Reminder set for task #{pendingTaskIdForReminder}: {friendlyTime}");
+                        pendingTaskIdForReminder = -1;
+                        RefreshTasks();
+                        RefreshActivityLog();
+                        return $"✓ Got it! I'll remind you {friendlyTime}.";
+                    }
+                    else
+                    {
+                        // ask for clarification
+                        awaitingReminderResponse = true;
+                        return "I didn't understand that time format. Try: 'in 3 days', 'tomorrow at 3pm', 'next Monday at 9am', or 'yyyy-MM-dd HH:mm'.";
+                    }
+                }
+
+                // User said "yes" but no specific time provided
+                if (intent.Intent == "yesreminder")
+                {
+                    awaitingReminderResponse = true;
+                    return "What time would you like to be reminded? (e.g., 'in 3 days', 'tomorrow at 3pm', 'next Monday at 9am' or a specific date like '2026-07-15 14:00')";
+                }
+
+                // Could not parse or recognise - ask again
+                awaitingReminderResponse = true;
+                return "I didn't catch that. Would you like a reminder? (Say 'yes', 'no', or specify a time like 'in 3 days')";
+            }
+
+            // Standard intent routing (non-reminder)
             switch (intent.Intent)
             {
                 case "showactivitylog":
@@ -270,7 +334,12 @@ namespace CyberAwarenessBot
                         var task = taskAssistant.AddTask(intent.ExtractedTitle);
                         RefreshTasks();
                         RefreshActivityLog();
-                        return $"Task added successfully: #{task.Id} - {task.Title}\nIf you want, enter a reminder in the Tasks tab using format yyyy-MM-dd HH:mm.";
+                        
+                        // Initiate reminder conversation
+                        pendingTaskIdForReminder = task.Id;
+                        awaitingReminderResponse = true;
+                        
+                        return $"✓ Task added: '{task.Title}'\n\nWould you like to set a reminder? (yes/no or specify time like 'in 3 days', 'tomorrow at 3pm')";
                     }
                     return "I can add that task. Please provide a title, for example: Add task - Review privacy settings";
 
@@ -299,18 +368,32 @@ namespace CyberAwarenessBot
             if (!string.IsNullOrWhiteSpace(reminderInput))
             {
                 DateTime parsedReminder;
-                if (!TaskAssistantService.TryParseReminder(reminderInput, out parsedReminder))
+                if (!TaskAssistantService.TryParseStandardReminder(reminderInput, out parsedReminder))
                 {
-                    MessageBox.Show("Reminder format not recognized. Use e.g. 2026-06-30 14:00");
+                    MessageBox.Show("Reminder format not recognized. Use e.g. 2026-06-30 14:00 or 'in 3 days' or 'tomorrow at 3pm'");
                     return;
                 }
                 reminder = parsedReminder;
             }
 
-            var task = taskAssistant.AddTask(title, description, reminder);
+            var task = taskAssistant.AddTask(title, description, null);
 
-            AddBotMessage($"I've added your task: #{task.Id} - {task.Title}" +
-                          (task.ReminderAt.HasValue ? $"\nReminder set for {task.ReminderAt.Value:yyyy-MM-dd HH:mm}." : ""));
+            // If user provided a reminder in the form field, set it immediately
+            if (reminder.HasValue)
+            {
+                taskAssistant.SetReminder(task.Id, reminder);
+                AddBotMessage($"✓ I've added your task: #{task.Id} - {task.Title}\nReminder set for {reminder.Value:yyyy-MM-dd HH:mm}.");
+                activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added with reminder {reminder.Value:yyyy-MM-dd HH:mm}.");
+            }
+            else
+            {
+                // Start reminder conversation so user can reply 'yes' or provide a natural language time
+                pendingTaskIdForReminder = task.Id;
+                awaitingReminderResponse = true;
+
+                AddBotMessage($"✓ Task added: #{task.Id} - {task.Title}\n\nWould you like to set a reminder? (yes/no or specify time like 'in 3 days', 'tomorrow at 3pm')");
+                activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added. Awaiting reminder response.");
+            }
 
             TaskTitleTextBox.Clear();
             TaskDescriptionTextBox.Clear();

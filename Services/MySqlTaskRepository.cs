@@ -52,10 +52,18 @@ SELECT LAST_INSERT_ID();";
                     command.Parameters.AddWithValue("@title", task.Title);
                     command.Parameters.AddWithValue("@description", (object)task.Description ?? DBNull.Value);
                     command.Parameters.AddWithValue("@reminderat", (object)task.ReminderAt ?? DBNull.Value);
-                    command.Parameters.AddWithValue("@iscompleted", task.IsCompleted);
+                    command.Parameters.AddWithValue("@iscompleted", task.IsCompleted ? 1 : 0);
                     command.Parameters.AddWithValue("@createdat", task.CreatedAt);
 
-                    return Convert.ToInt32(command.ExecuteScalar());
+                    try
+                    {
+                        return Convert.ToInt32(command.ExecuteScalar());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error inserting task: {ex.Message}");
+                        throw;
+                    }
                 }
             }
         }
@@ -81,7 +89,7 @@ SELECT LAST_INSERT_ID();";
                             Title = reader.GetString("title"),
                             Description = reader.IsDBNull(reader.GetOrdinal("description")) ? null : reader.GetString("description"),
                             ReminderAt = reader.IsDBNull(reader.GetOrdinal("reminderat")) ? (DateTime?)null : reader.GetDateTime("reminderat"),
-                            IsCompleted = Convert.ToBoolean(reader["iscompleted"]),
+                            IsCompleted = Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("iscompleted"))),
                             CreatedAt = reader.GetDateTime("createdat")
                         });
                     }
@@ -113,7 +121,7 @@ SELECT LAST_INSERT_ID();";
                                 Title = reader.GetString("title"),
                                 Description = reader.IsDBNull(reader.GetOrdinal("description")) ? null : reader.GetString("description"),
                                 ReminderAt = reader.IsDBNull(reader.GetOrdinal("reminderat")) ? (DateTime?)null : reader.GetDateTime("reminderat"),
-                                IsCompleted = Convert.ToBoolean(reader["iscompleted"]),
+                                IsCompleted = Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("iscompleted"))),
                                 CreatedAt = reader.GetDateTime("createdat")
                             };
                         }

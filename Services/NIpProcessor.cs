@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CyberAwarenessBot
 {
@@ -15,6 +15,28 @@ namespace CyberAwarenessBot
                 Intent = "unknown",
                 WantsReminder = normalized.Contains("reminder")
             };
+
+            // Check for explicit "no" to reminder
+            if (ContainsAny(normalized, "no", "nope", "skip", "no reminder", "no thanks", "don't need", "cancel reminder"))
+            {
+                result.Intent = "noreminder";
+                return result;
+            }
+
+            // Check for reminder time expressions
+            if (IsReminderTimeExpression(normalized))
+            {
+                result.Intent = "remindertime";
+                result.ExtractedTopic = input; // Store raw input for time parsing
+                return result;
+            }
+
+            // Check for yes/affirmative to reminder prompt
+            if (ContainsAny(normalized, "yes", "yeah", "sure", "ok", "okay", "yep", "please", "set reminder", "remind me"))
+            {
+                result.Intent = "yesreminder";
+                return result;
+            }
 
             if (ContainsAny(normalized, "show activity log", "activity log", "what have you done for me", "show log", "recent actions"))
             {
@@ -48,21 +70,37 @@ namespace CyberAwarenessBot
                 return result;
             }
 
-            if (ContainsAny(normalized, "complete task", "mark completed", "mark task complete", "done task"))
+            if (ContainsAny(normalized, "complete task", "mark completed", "mark task complete", "done task", "complete"))
             {
                 result.Intent = "completetask";
                 return result;
             }
 
-            if (ContainsAny(normalized, "remind me", "set reminder", "add reminder"))
-            {
-                result.Intent = "setreminder";
-                result.ExtractedTopic = ExtractTopic(normalized);
-                return result;
-            }
-
             result.ExtractedTopic = ExtractTopic(normalized);
             return result;
+        }
+
+        // Check if input contains time expressions like "in 3 days", "tomorrow", "next Monday", etc.
+        private static bool IsReminderTimeExpression(string normalized)
+        {
+            var timePatterns = new[]
+            {
+                @"in\s+\d+\s+(days?|weeks?|hours?)",
+                @"tomorrow",
+                @"next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)",
+                @"at\s+\d{1,2}(:\d{2})?\s*(am|pm)?",
+                @"\d{4}-\d{2}-\d{2}",
+                @"\d{1,2}/\d{1,2}/\d{4}",
+                @"\d{1,2}\s+[a-zA-Z]+\s+\d{4}"
+            };
+
+            foreach (var pattern in timePatterns)
+            {
+                if (Regex.IsMatch(normalized, pattern, RegexOptions.IgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private static bool ContainsAny(string input, params string[] patterns)
@@ -80,74 +118,56 @@ namespace CyberAwarenessBot
             if (string.IsNullOrWhiteSpace(input))
                 return string.Empty;
 
-            input = input.ToLowerInvariant();
-
-            var sb = new StringBuilder();
-            foreach (char c in input)
-            {
-                if (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c))
-                    sb.Append(c);
-                else
-                    sb.Append(' ');
-            }
-
-            string normalized = sb.ToString();
-            while (normalized.Contains("  "))
-                normalized = normalized.Replace("  ", " ");
-
-            normalized = normalized.Replace("two factor", "2fa");
-            normalized = normalized.Replace("2 factor", "2fa");
-            normalized = normalized.Replace("multi factor", "2fa");
-            normalized = normalized.Replace("mfa", "2fa");
-
-            return normalized.Trim();
+            return input.ToLowerInvariant().Trim();
         }
 
         private static string ExtractTaskTitle(string input)
         {
-            if (string.IsNullOrWhiteSpace(input))
-                return null;
+            if (string.IsNullOrWhiteSpace(input)) return null;
 
-            string[] prefixes =
+            string lower = input.ToLowerInvariant();
+            
+            var patterns = new[] { "add task", "create task", "new task", "add a task" };
+            foreach (var pattern in patterns)
             {
-                "add task",
-                "add a task",
-                "create task",
-                "new task",
-                "task to",
-                "set a task"
-            };
-
-            string lowered = input.ToLowerInvariant();
-
-            foreach (string prefix in prefixes)
-            {
-                int idx = lowered.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+                int idx = lower.IndexOf(pattern);
                 if (idx >= 0)
                 {
-                    string title = input.Substring(idx + prefix.Length).Trim(' ', '-', ':');
-                    if (!string.IsNullOrWhiteSpace(title))
-                        return title;
+                    string afterPattern = input.Substring(idx + pattern.Length).Trim();
+                    if (afterPattern.StartsWith("-"))
+                        afterPattern = afterPattern.Substring(1).Trim();
+                    
+                    return afterPattern.Length > 0 ? afterPattern : null;
                 }
+            }
+
+            // Fallback: if input contains '-' use part after
+            int dash = input.IndexOf('-');
+            if (dash >= 0 && dash < input.Length - 1)
+            {
+                string after = input.Substring(dash + 1).Trim();
+                return after.Length > 0 ? after : null;
             }
 
             return null;
         }
 
-        private static string ExtractTopic(string lower)
+        private static string ExtractTopic(string input)
         {
-            string[] known =
-            {
-                "password", "phishing", "privacy", "malware", "2fa",
-                "scam", "ransomware", "data breach", "breach", "vpn", "encryption"
+            if (string.IsNullOrWhiteSpace(input)) return null;
+
+            string[] topics = new[] 
+            { 
+                "password", "phishing", "privacy", "malware", "2fa", "two factor", 
+                "data breach", "scam", "ransomware", "vpn", "encryption", 
+                "firewall", "antivirus", "backup"
             };
 
-            foreach (var t in known)
+            foreach (var topic in topics)
             {
-                if (lower.Contains(t))
-                    return t;
+                if (input.Contains(topic))
+                    return topic;
             }
-
             return null;
         }
     }

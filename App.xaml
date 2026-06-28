@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-
         <SolidColorBrush x:Key="BgDarkBrush"      Color="#0D1117"/>
         <SolidColorBrush x:Key="BgPanelBrush"     Color="#161B22"/>
         <SolidColorBrush x:Key="BgInputBrush"     Color="#1F2937"/>
@@ -44,38 +43,5 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="VoiceButton" TargetType="Button" BasedOn="{StaticResource CyberButton}">
-            <Setter Property="Background" Value="#00BFFF"/>
-        </Style>
-
-        <Style x:Key="InputBox" TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-            <Setter Property="CaretBrush" Value="{StaticResource AccentGreenBrush}"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush2}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{StaticResource AccentGreenBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
     </Application.Resources>
 </Application>

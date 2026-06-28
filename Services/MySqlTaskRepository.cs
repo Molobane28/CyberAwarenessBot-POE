@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using MySql.Data.MySqlClient;
 
 namespace CyberAwarenessBot
 {
-    // MySQL-backed implementation of ITaskRepository.
-    // Every database operation is wrapped in try-catch so failures are handled gracefully:
-    //  - Read operations log the error and return a safe default (empty list / null).
-    //  - Write operations log the error and rethrow a descriptive exception so the caller/UI
-    //    can inform the user instead of silently losing data.
+    /// <summary>
+    /// MySQL implementation of ITaskRepository with full error handling
+    /// </summary>
     public class MySqlTaskRepository : ITaskRepository
     {
         private readonly string connectionString;
@@ -19,6 +16,9 @@ namespace CyberAwarenessBot
             this.connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Initialize database - create table if not exists
+        /// </summary>
         public void InitializeDatabase()
         {
             try
@@ -28,14 +28,14 @@ namespace CyberAwarenessBot
                     connection.Open();
 
                     string sql = @"
-CREATE TABLE IF NOT EXISTS tasks (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    reminderat DATETIME NULL,
-    iscompleted BIT NOT NULL DEFAULT 0,
-    createdat DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);";
+                        CREATE TABLE IF NOT EXISTS tasks (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            title VARCHAR(255) NOT NULL,
+                            description TEXT NULL,
+                            reminderat DATETIME NULL,
+                            iscompleted BIT NOT NULL DEFAULT 0,
+                            createdat DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        );";
 
                     using (var command = new MySqlCommand(sql, connection))
                     {
@@ -43,18 +43,16 @@ CREATE TABLE IF NOT EXISTS tasks (
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error initializing database: {ex.Message}");
-                throw new Exception("Failed to initialize the database. Please verify MySQL is running and the connection string is correct.", ex);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error initializing database: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Database initialization error: {ex.Message}");
                 throw;
             }
         }
 
+        /// <summary>
+        /// Add a new task to the database
+        /// </summary>
         public int AddTask(CyberTask task)
         {
             try
@@ -64,13 +62,13 @@ CREATE TABLE IF NOT EXISTS tasks (
                     connection.Open();
 
                     string sql = @"
-INSERT INTO tasks (title, description, reminderat, iscompleted, createdat)
-VALUES (@title, @description, @reminderat, @iscompleted, @createdat);
-SELECT LAST_INSERT_ID();";
+                        INSERT INTO tasks (title, description, reminderat, iscompleted, createdat)
+                        VALUES (@title, @description, @reminderat, @iscompleted, @createdat);
+                        SELECT LAST_INSERT_ID();";
 
                     using (var command = new MySqlCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@title", task.Title);
+                        command.Parameters.AddWithValue("@title", task.Title ?? string.Empty);
                         command.Parameters.AddWithValue("@description", (object)task.Description ?? DBNull.Value);
                         command.Parameters.AddWithValue("@reminderat", (object)task.ReminderAt ?? DBNull.Value);
                         command.Parameters.AddWithValue("@iscompleted", task.IsCompleted ? 1 : 0);
@@ -80,18 +78,16 @@ SELECT LAST_INSERT_ID();";
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error inserting task: {ex.Message}");
-                throw new Exception("Failed to save the task to the database.", ex);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error inserting task: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"AddTask error: {ex.Message}");
                 throw;
             }
         }
 
+        /// <summary>
+        /// Get all tasks from the database
+        /// </summary>
         public List<CyberTask> GetAllTasks()
         {
             var tasks = new List<CyberTask>();
@@ -109,23 +105,31 @@ SELECT LAST_INSERT_ID();";
                     {
                         while (reader.Read())
                         {
-                            tasks.Add(ReadTask(reader));
+                            tasks.Add(new CyberTask
+                            {
+                                Id = reader.GetInt32("id"),
+                                Title = reader.GetString("title"),
+                                Description = reader.IsDBNull(reader.GetOrdinal("description")) ? null : reader.GetString("description"),
+                                ReminderAt = reader.IsDBNull(reader.GetOrdinal("reminderat")) ? (DateTime?)null : reader.GetDateTime("reminderat"),
+                                IsCompleted = Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("iscompleted"))),
+                                CreatedAt = reader.GetDateTime("createdat")
+                            });
                         }
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error reading tasks: {ex.Message}");
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error reading tasks: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"GetAllTasks error: {ex.Message}");
+                throw;
             }
 
             return tasks;
         }
 
+        /// <summary>
+        /// Get a specific task by ID
+        /// </summary>
         public CyberTask GetTaskById(int id)
         {
             try
@@ -144,24 +148,32 @@ SELECT LAST_INSERT_ID();";
                         {
                             if (reader.Read())
                             {
-                                return ReadTask(reader);
+                                return new CyberTask
+                                {
+                                    Id = reader.GetInt32("id"),
+                                    Title = reader.GetString("title"),
+                                    Description = reader.IsDBNull(reader.GetOrdinal("description")) ? null : reader.GetString("description"),
+                                    ReminderAt = reader.IsDBNull(reader.GetOrdinal("reminderat")) ? (DateTime?)null : reader.GetDateTime("reminderat"),
+                                    IsCompleted = Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("iscompleted"))),
+                                    CreatedAt = reader.GetDateTime("createdat")
+                                };
                             }
                         }
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error reading task #{id}: {ex.Message}");
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error reading task #{id}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"GetTaskById error: {ex.Message}");
+                throw;
             }
 
             return null;
         }
 
+        /// <summary>
+        /// Mark a task as completed
+        /// </summary>
         public void MarkCompleted(int id)
         {
             try
@@ -175,22 +187,25 @@ SELECT LAST_INSERT_ID();";
                     using (var command = new MySqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@id", id);
-                        command.ExecuteNonQuery();
+                        int rowsAffected = command.ExecuteNonQuery();
+
+                        if (rowsAffected == 0)
+                        {
+                            throw new Exception($"Task with ID {id} not found.");
+                        }
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error marking task #{id} completed: {ex.Message}");
-                throw new Exception("Failed to update the task status in the database.", ex);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error marking task #{id} completed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"MarkCompleted error: {ex.Message}");
                 throw;
             }
         }
 
+        /// <summary>
+        /// Delete a task from the database
+        /// </summary>
         public void DeleteTask(int id)
         {
             try
@@ -204,22 +219,25 @@ SELECT LAST_INSERT_ID();";
                     using (var command = new MySqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@id", id);
-                        command.ExecuteNonQuery();
+                        int rowsAffected = command.ExecuteNonQuery();
+
+                        if (rowsAffected == 0)
+                        {
+                            throw new Exception($"Task with ID {id} not found.");
+                        }
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error deleting task #{id}: {ex.Message}");
-                throw new Exception("Failed to delete the task from the database.", ex);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error deleting task #{id}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"DeleteTask error: {ex.Message}");
                 throw;
             }
         }
 
+        /// <summary>
+        /// Update reminder for a task
+        /// </summary>
         public void UpdateReminder(int id, DateTime? reminderAt)
         {
             try
@@ -234,34 +252,20 @@ SELECT LAST_INSERT_ID();";
                     {
                         command.Parameters.AddWithValue("@id", id);
                         command.Parameters.AddWithValue("@reminderat", (object)reminderAt ?? DBNull.Value);
-                        command.ExecuteNonQuery();
+                        int rowsAffected = command.ExecuteNonQuery();
+
+                        if (rowsAffected == 0)
+                        {
+                            throw new Exception($"Task with ID {id} not found.");
+                        }
                     }
                 }
             }
-            catch (MySqlException ex)
-            {
-                Debug.WriteLine($"Error updating reminder for task #{id}: {ex.Message}");
-                throw new Exception("Failed to update the reminder in the database.", ex);
-            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unexpected error updating reminder for task #{id}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"UpdateReminder error: {ex.Message}");
                 throw;
             }
-        }
-
-        // Maps the current row of a data reader onto a CyberTask instance.
-        private static CyberTask ReadTask(MySqlDataReader reader)
-        {
-            return new CyberTask
-            {
-                Id = reader.GetInt32("id"),
-                Title = reader.GetString("title"),
-                Description = reader.IsDBNull(reader.GetOrdinal("description")) ? null : reader.GetString("description"),
-                ReminderAt = reader.IsDBNull(reader.GetOrdinal("reminderat")) ? (DateTime?)null : reader.GetDateTime("reminderat"),
-                IsCompleted = Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("iscompleted"))),
-                CreatedAt = reader.GetDateTime("createdat")
-            };
         }
     }
 }

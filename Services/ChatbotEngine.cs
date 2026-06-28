@@ -3,8 +3,14 @@ using System.Collections.Generic;
 
 namespace CyberAwarenessBot
 {
+    /// <summary>
+    /// Delegate for memory update notifications
+    /// </summary>
     public delegate void MemoryUpdatedHandler(UserMemory memory);
 
+    /// <summary>
+    /// Main chatbot engine that handles conversation flow, sentiment analysis, and responses
+    /// </summary>
     public class ChatbotEngine
     {
         private readonly UserMemory memory;
@@ -15,6 +21,7 @@ namespace CyberAwarenessBot
         private readonly Random rng = new Random(Guid.NewGuid().GetHashCode());
         private int lastGeneralTipIndex = -1;
 
+        // Cybersecurity tips database
         private static readonly string[] generalTips = new[]
         {
             "🚨 Tip: Enable Two-Factor Authentication (2FA) on your important accounts to block unauthorized access.",
@@ -24,17 +31,24 @@ namespace CyberAwarenessBot
             "🛡️ Tip: Keep your operating system and applications updated to patch known vulnerabilities."
         };
 
+        // Follow-up phrases for continued conversation
         private static readonly List<string> FollowUpPhrases = new List<string>()
         {
             "tell me more", "another tip", "more", "give me another",
-            "continue", "next tip", "another example", "explain more"
+            "continue", "next tip", "another example", "explain more",
+            "what else", "tell me more about", "go on"
         };
 
+        // Exit phrases to end conversation
         private static readonly List<string> ExitPhrases = new List<string>()
         {
-            "bye", "goodbye", "exit", "quit", "see you", "later"
+            "bye", "goodbye", "exit", "quit", "see you", "later",
+            "thank you", "thanks", "thank", "appreciate it"
         };
 
+        /// <summary>
+        /// Constructor - Initializes engine with callbacks
+        /// </summary>
         public ChatbotEngine(
             SentimentAnalyzer.SentimentChangedHandler onSentimentChanged,
             MemoryUpdatedHandler onMemoryUpdated)
@@ -48,11 +62,17 @@ namespace CyberAwarenessBot
             sentiment.OnSentimentChanged += onSentimentChanged;
         }
 
+        /// <summary>
+        /// Get welcome message for new users
+        /// </summary>
         public string GetWelcomeMessage() =>
             "👋 Hello! I'm CyberGuard AI - your personal cybersecurity awareness assistant.\n\n" +
             "I'm here to help you stay safe online with tips on passwords, phishing, privacy, and more.\n\n" +
             "Before we start - what's your name?";
 
+        /// <summary>
+        /// Process user input and generate response
+        /// </summary>
         public string ProcessInput(string rawInput)
         {
             if (string.IsNullOrWhiteSpace(rawInput))
@@ -62,22 +82,27 @@ namespace CyberAwarenessBot
             string lower = input.ToLowerInvariant();
             state.RecordInput(input);
 
+            // Handle onboarding flow
             if (state.Phase != OnboardingPhase.Chatting)
                 return HandleOnboarding(input, lower);
 
+            // Handle exit phrases
             foreach (var phrase in ExitPhrases)
                 if (lower.Contains(phrase)) return BuildFarewell();
 
-            var sentiment = this.sentiment.Analyse(lower);
+            // Analyze sentiment
+            var sentimentResult = this.sentiment.Analyse(lower);
 
+            // Handle follow-up requests
             if (IsFollowUp(lower) && state.LastTopic != null)
             {
                 string fu = keywords.GetFollowUpFor(state.LastTopic);
-                if (fu != null) return GetFollowUpSentimentPrefix(sentiment) + fu;
+                if (fu != null) return GetFollowUpSentimentPrefix(sentimentResult) + fu;
             }
 
+            // Detect topic from input
             string detectedTopic = ExtractTopic(lower);
-            if (string.Equals(sentiment.Label, "Neutral", StringComparison.OrdinalIgnoreCase) &&
+            if (string.Equals(sentimentResult.Label, "Neutral", StringComparison.OrdinalIgnoreCase) &&
                 !string.IsNullOrEmpty(detectedTopic) &&
                 !memory.HasTopic)
             {
@@ -86,7 +111,8 @@ namespace CyberAwarenessBot
                 return $"I'll remember that you're interested in {detectedTopic}. It's a crucial part of staying safe online.";
             }
 
-            if (!string.Equals(sentiment.Label, "Neutral", StringComparison.OrdinalIgnoreCase))
+            // Handle sentiment-based responses
+            if (!string.Equals(sentimentResult.Label, "Neutral", StringComparison.OrdinalIgnoreCase))
             {
                 string topic = ExtractTopic(lower) ?? state.LastTopic;
                 string tip = null;
@@ -97,7 +123,7 @@ namespace CyberAwarenessBot
                 if (string.IsNullOrEmpty(tip))
                     tip = GetGeneralTip();
 
-                switch (sentiment.Label)
+                switch (sentimentResult.Label)
                 {
                     case "Worried":
                         return "It's completely understandable to feel that way. Cybersecurity can feel overwhelming - many people worry about scams or breaches. Let me share some tips to help you stay safe:\n\n" + PersonalizeTip(tip, topic);
@@ -113,22 +139,28 @@ namespace CyberAwarenessBot
                 }
             }
 
+            // Get keyword-based response
             string reply = keywords.GetResponse(lower, state);
             if (reply != null)
             {
                 string topicForReply = state.LastTopic ?? ExtractTopic(lower);
                 string personalized = PersonalizeReply(reply, topicForReply);
-                return GetQuestionSentimentPrefix(sentiment) + personalized;
+                return GetQuestionSentimentPrefix(sentimentResult) + personalized;
             }
 
-            if (lower.Contains("help") || lower.Contains("topics"))
+            // Help request
+            if (lower.Contains("help") || lower.Contains("topics") || lower.Contains("what can you do"))
                 return BuildHelpMessage();
 
-            return GetQuestionSentimentPrefix(sentiment) +
+            // Default fallback
+            return GetQuestionSentimentPrefix(sentimentResult) +
                    "🤖 I'm not sure I understand. Try topics like: passwords, phishing, privacy, malware, 2FA.\n" +
                    "You can also say: add task, show tasks, start quiz, or show activity log.";
         }
 
+        /// <summary>
+        /// Get a random general cybersecurity tip
+        /// </summary>
         private string GetGeneralTip()
         {
             int idx = rng.Next(generalTips.Length);
@@ -142,11 +174,17 @@ namespace CyberAwarenessBot
             return generalTips[idx];
         }
 
+        /// <summary>
+        /// Get sentiment prefix for questions
+        /// </summary>
         private string GetQuestionSentimentPrefix(SentimentResult sentiment)
         {
             return sentiment?.TonePrefix ?? string.Empty;
         }
 
+        /// <summary>
+        /// Get sentiment prefix for follow-up responses
+        /// </summary>
         private string GetFollowUpSentimentPrefix(SentimentResult sentiment)
         {
             if (sentiment == null) return string.Empty;
@@ -163,6 +201,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handle onboarding flow (name, topic, level)
+        /// </summary>
         private string HandleOnboarding(string input, string lower)
         {
             switch (state.Phase)
@@ -199,6 +240,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Check if input is a follow-up request
+        /// </summary>
         private static bool IsFollowUp(string lower)
         {
             foreach (var p in FollowUpPhrases)
@@ -206,12 +250,17 @@ namespace CyberAwarenessBot
             return false;
         }
 
+        /// <summary>
+        /// Extract cybersecurity topic from input
+        /// </summary>
         private static string ExtractTopic(string lower)
         {
             string[] known =
             {
-                "password", "phishing", "privacy", "malware", "2fa", "scam",
-                "ransomware", "data breach", "breach", "vpn", "encryption"
+                "password", "phishing", "privacy", "malware", "2fa",
+                "scam", "ransomware", "data breach", "breach",
+                "vpn", "encryption", "authentication", "backup",
+                "software update", "update", "wifi", "social engineering"
             };
 
             foreach (var t in known)
@@ -220,30 +269,46 @@ namespace CyberAwarenessBot
             return null;
         }
 
+        /// <summary>
+        /// Extract experience level from input
+        /// </summary>
         private static string ExtractLevel(string lower)
         {
-            if (lower.Contains("expert")) return "expert";
-            if (lower.Contains("intermediate")) return "intermediate";
+            if (lower.Contains("expert") || lower.Contains("advanced")) return "expert";
+            if (lower.Contains("intermediate") || lower.Contains("medium")) return "intermediate";
             return "beginner";
         }
 
+        /// <summary>
+        /// Build help message with available topics
+        /// </summary>
         private string BuildHelpMessage() =>
             "🤖 Available Topics\n\n" +
             "🔒 passwords\n🎣 phishing\n🛡️ privacy\n🦠 malware\n" +
-            "🔑 2FA\n💥 data breach\n⚠️ scam\n💰 ransomware\n\n" +
+            "🔑 2FA\n💥 data breach\n⚠️ scam\n💰 ransomware\n" +
+            "🔐 encryption\n🔄 software updates\n📶 wifi security\n\n" +
             "Extra commands:\n" +
-            "- add task\n" +
+            "- add task [title]\n" +
             "- show tasks\n" +
             "- start quiz\n" +
-            "- show activity log\n\n" +
+            "- show activity log\n" +
+            "- remind me to [task]\n\n" +
             "Say 'tell me more' or 'another tip' to continue on the last topic.";
 
+        /// <summary>
+        /// Build farewell message
+        /// </summary>
         private string BuildFarewell() =>
             "👋 Stay safe online! Remember:\n\n" +
             "- Use strong, unique passwords\n" +
             "- Enable 2FA everywhere\n" +
-            "- Think before you click\n";
+            "- Think before you click\n" +
+            "- Keep software updated\n" +
+            "- Backup your data";
 
+        /// <summary>
+        /// Personalize tip with user name and topic
+        /// </summary>
         private string PersonalizeTip(string tip, string topic)
         {
             string namePart = memory.HasName ? $"{memory.UserName}, " : string.Empty;
@@ -252,6 +317,9 @@ namespace CyberAwarenessBot
             return namePart + topicPart + adjusted;
         }
 
+        /// <summary>
+        /// Personalize reply with user name and topic
+        /// </summary>
         private string PersonalizeReply(string reply, string topic)
         {
             string namePart = memory.HasName ? $"{memory.UserName}, " : string.Empty;
@@ -260,6 +328,9 @@ namespace CyberAwarenessBot
             return namePart + topicPart + adjusted;
         }
 
+        /// <summary>
+        /// Adjust tip content based on user experience level
+        /// </summary>
         private string AdjustTipForLevel(string text, string level)
         {
             if (string.IsNullOrEmpty(level)) return text;

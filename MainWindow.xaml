@@ -8,7 +8,8 @@
         Height="820"
         Width="1400"
         WindowStartupLocation="CenterScreen"
-        Background="#0F172A">
+        Background="#0F172A"
+        Loaded="Window_Loaded">
 
     <Window.Resources>
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F172A"/>
@@ -57,12 +58,14 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Left: chatbot -->
+        <!-- Chat Panel -->
         <Grid Grid.Column="0" Margin="0,0,10,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <!-- New row for status bar -->
             </Grid.RowDefinitions>
 
             <Border Background="{StaticResource PanelBackgroundBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,10">
@@ -90,6 +93,7 @@
                 </ScrollViewer>
             </Border>
 
+            <!-- Input Row -->
             <Grid Grid.Row="2" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -107,17 +111,23 @@
                         Content="Send"
                         Click="SendButtonClick"/>
             </Grid>
+
+            <!-- Status Bar -->
+            <TextBlock x:Name="StatusBar" Grid.Row="3"
+                       Foreground="#FFD700" FontSize="12" 
+                       Margin="4,5,4,0" VerticalAlignment="Center"
+                       Text=""/>
         </Grid>
 
-        <!-- Right: tools -->
+        <!-- Right Panel: Tabs -->
         <TabControl Grid.Column="1" Background="{StaticResource PanelBackgroundBrush}" Foreground="White">
             <TabItem Header="Memory">
                 <Border Background="{StaticResource PanelBackgroundBrush}" Padding="10">
                     <StackPanel>
-                        <TextBlock Text="User Memory" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <TextBlock x:Name="MemoryNameText" Margin="0,4"/>
-                        <TextBlock x:Name="MemoryTopicText" Margin="0,4"/>
-                        <TextBlock x:Name="MemoryLevelText" Margin="0,4"/>
+                        <TextBlock Text="User Memory" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="{StaticResource AccentBlueBrush}"/>
+                        <TextBlock x:Name="MemoryNameText" Margin="0,4" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="MemoryTopicText" Margin="0,4" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="MemoryLevelText" Margin="0,4" Foreground="{StaticResource TextPrimaryBrush}"/>
                     </StackPanel>
                 </Border>
             </TabItem>
@@ -131,29 +141,29 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Cybersecurity Tasks" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <TextBlock Text="Cybersecurity Tasks" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="{StaticResource AccentBlueBrush}"/>
 
                     <StackPanel Grid.Row="1">
                         <TextBox x:Name="TaskTitleTextBox" ToolTip="Task title"/>
                         <TextBox x:Name="TaskDescriptionTextBox" ToolTip="Description (optional)"/>
                         <TextBox x:Name="TaskReminderTextBox" ToolTip="Reminder e.g. 2026-06-30 14:00 (optional)"/>
                         <WrapPanel>
-                            <Button Content="Add Task" Click="AddTaskButtonClick"/>
-                            <Button Content="Refresh" Click="RefreshTasksButtonClick"/>
+                            <Button Content="Add Task" Click="AddTaskButtonClick" Background="#2563EB"/>
+                            <Button Content="Refresh" Click="RefreshTasksButtonClick" Background="#2563EB"/>
                         </WrapPanel>
                     </StackPanel>
 
                     <ListBox x:Name="TasksListBox" Grid.Row="2" Margin="0,10,0,10" DisplayMemberPath="ToString"/>
 
                     <WrapPanel Grid.Row="3">
-                        <Button Content="Mark Completed" Click="CompleteTaskButtonClick"/>
-                        <Button Content="Delete Task" Background="#DC2626" Click="DeleteTaskButtonClick"/>
+                        <Button Content="Mark Completed" Click="CompleteTaskButtonClick" Background="#22C55E"/>
+                        <Button Content="Delete Task" Background="#EF4444" Click="DeleteTaskButtonClick"/>
                     </WrapPanel>
                 </Grid>
             </TabItem>
 
             <TabItem Header="Quiz">
-                <Grid Background="{StaticResource PanelBackgroundBrush}" Margin="8">
+                <Grid Background="#111827" Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -161,29 +171,67 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Cybersecurity Mini-Quiz" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="🧠 Cybersecurity Mini-Quiz" 
+                               FontSize="18" 
+                               FontWeight="Bold" 
+                               Foreground="#38BDF8" 
+                               Margin="0,0,0,10"/>
 
                     <TextBlock x:Name="QuizQuestionText"
                                Grid.Row="1"
-                               Margin="0,12,0,12"
+                               Margin="0,10,0,15"
                                TextWrapping="Wrap"
-                               FontSize="16"/>
+                               FontSize="16"
+                               Foreground="#E5E7EB"
+                               Text="📝 Click 'Start Quiz' to begin the cybersecurity quiz!"/>
 
-                    <StackPanel Grid.Row="2">
-                        <RadioButton x:Name="Option1Radio" GroupName="QuizOptions" Margin="0,6"/>
-                        <RadioButton x:Name="Option2Radio" GroupName="QuizOptions" Margin="0,6"/>
-                        <RadioButton x:Name="Option3Radio" GroupName="QuizOptions" Margin="0,6"/>
-                        <RadioButton x:Name="Option4Radio" GroupName="QuizOptions" Margin="0,6"/>
+                    <StackPanel Grid.Row="2" Margin="0,5,0,10">
+                        <RadioButton x:Name="Option1Radio" 
+                                     GroupName="QuizOptions" 
+                                     Margin="0,5" 
+                                     Foreground="#E5E7EB"
+                                     FontSize="14"/>
+                        <RadioButton x:Name="Option2Radio" 
+                                     GroupName="QuizOptions" 
+                                     Margin="0,5" 
+                                     Foreground="#E5E7EB"
+                                     FontSize="14"/>
+                        <RadioButton x:Name="Option3Radio" 
+                                     GroupName="QuizOptions" 
+                                     Margin="0,5" 
+                                     Foreground="#E5E7EB"
+                                     FontSize="14"/>
+                        <RadioButton x:Name="Option4Radio" 
+                                     GroupName="QuizOptions" 
+                                     Margin="0,5" 
+                                     Foreground="#E5E7EB"
+                                     FontSize="14"/>
                         <TextBlock x:Name="QuizFeedbackText"
-                                   Margin="0,12,0,0"
-                                   Foreground="{StaticResource AccentGreenBrush}"
-                                   TextWrapping="Wrap"/>
+                                   Margin="0,15,0,0"
+                                   Foreground="#22C55E"
+                                   TextWrapping="Wrap"
+                                   FontSize="14"/>
                     </StackPanel>
 
-                    <WrapPanel Grid.Row="3">
-                        <Button Content="Start Quiz" Click="StartQuizButtonClick"/>
-                        <Button Content="Submit Answer" Click="SubmitQuizAnswerButtonClick"/>
-                        <Button Content="Next Question" Click="NextQuizQuestionButtonClick"/>
+                    <WrapPanel Grid.Row="3" Margin="0,10,0,0">
+                        <Button Content="▶ Start Quiz" 
+                                Click="StartQuizButtonClick" 
+                                Background="#2563EB" 
+                                Foreground="White"
+                                Padding="15,8"
+                                Margin="5"/>
+                        <Button Content="✅ Submit Answer" 
+                                Click="SubmitQuizAnswerButtonClick" 
+                                Background="#2563EB" 
+                                Foreground="White"
+                                Padding="15,8"
+                                Margin="5"/>
+                        <Button Content="➡ Next Question" 
+                                Click="NextQuizQuestionButtonClick" 
+                                Background="#2563EB" 
+                                Foreground="White"
+                                Padding="15,8"
+                                Margin="5"/>
                     </WrapPanel>
                 </Grid>
             </TabItem>
@@ -196,7 +244,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="Recent Activity" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="Recent Activity" FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
 
                     <ListBox x:Name="ActivityLogListBox"
                              Grid.Row="1"
@@ -204,8 +252,8 @@
                              DisplayMemberPath="DisplayText"/>
 
                     <WrapPanel Grid.Row="2">
-                        <Button Content="Refresh Log" Click="RefreshLogButtonClick"/>
-                        <Button Content="Show More" Click="ShowMoreLogButtonClick"/>
+                        <Button Content="Refresh Log" Click="RefreshLogButtonClick" Background="#2563EB"/>
+                        <Button Content="Show More" Click="ShowMoreLogButtonClick" Background="#2563EB"/>
                     </WrapPanel>
                 </Grid>
             </TabItem>

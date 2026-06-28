@@ -1,34 +1,35 @@
-﻿// Summary of comments:
-// - using directives import required namespaces.
-// - The `App` class derives from `Application` to configure startup behavior.
-// - `OnStartup` is overridden to register global exception handlers for both UI and non-UI threads.
-// - `AppDomain.CurrentDomain.UnhandledException` shows a critical error dialog and advises restart.
-// - `DispatcherUnhandledException` shows a UI warning and marks the exception as handled so the app continues.
+﻿using System;
+using System.Windows;
 
-using System; // Basic system types and Exception
-using System.Windows; // WPF application types like Application and MessageBox
-
-namespace CyberAwarenessBot // Root namespace for the application
+namespace CyberAwarenessBot
 {
-    public partial class App : Application // App class inherits from WPF Application
+    /// <summary>
+    /// Main application entry point with global exception handling
+    /// </summary>
+    public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e) // Override to run custom startup logic
+        /// <summary>
+        /// Override OnStartup to register global exception handlers for both UI and non-UI threads
+        /// </summary>
+        protected override void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e); // Call base implementation to ensure normal startup behavior
+            base.OnStartup(e);
 
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) => // Handle non-UI/unhandled exceptions
+            // Handle non-UI/unhandled exceptions (e.g., background threads)
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             {
-                var exception = args.ExceptionObject as Exception; // Extract Exception from event args
+                var exception = args.ExceptionObject as Exception;
                 MessageBox.Show($"Critical Error: {exception?.Message}\n\nPlease restart the application.",
-                    "CyberGuard AI - Error", MessageBoxButton.OK, MessageBoxImage.Error); // Show critical error dialog
-            }; // End AppDomain unhandled exception handler
+                    "CyberGuard AI - Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            };
 
-            DispatcherUnhandledException += (sender, args) => // Handle exceptions on the UI thread
+            // Handle exceptions on the UI thread (Dispatcher)
+            DispatcherUnhandledException += (sender, args) =>
             {
                 MessageBox.Show($"UI Error: {args.Exception.Message}\n\nThe application will continue running.",
-                    "CyberGuard AI", MessageBoxButton.OK, MessageBoxImage.Warning); // Inform user and warn the app will continue
-                args.Handled = true; // Mark exception as handled to prevent application crash
-            }; // End DispatcherUnhandledException handler
-        } // End OnStartup override
-    } // End App class
-} // End namespace
+                    "CyberGuard AI", MessageBoxButton.OK, MessageBoxImage.Warning);
+                args.Handled = true; // Mark as handled to prevent crash
+            };
+        }
+    }
+}

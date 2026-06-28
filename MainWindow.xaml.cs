@@ -54,14 +54,42 @@ namespace CyberAwarenessBot
 
         private void InitializeServices()
         {
-            string connectionString = "server=localhost;port=3306;database=cyberawarenessbot;uid=root;pwd=Salome@123;";
+            string connectionString = GetConnectionString();
             taskRepository = new MySqlTaskRepository(connectionString);
-            taskRepository.InitializeDatabase();
+
+            try
+            {
+                taskRepository.InitializeDatabase();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not connect to the MySQL database.\n\n" +
+                    "The app will keep running, but task features won't work until the database is available.\n\n" +
+                    "Check that MySQL is running and that the connection string in App.config is correct.\n\n" +
+                    $"Details: {ex.Message}",
+                    "Database Connection",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
 
             activityLogger = new ActivityLogger();
             taskAssistant = new TaskAssistantService(taskRepository, activityLogger);
             quizService = new QuizService();
             nlp = new NlpProcessor();
+        }
+
+        // Reads the MySQL connection string from App.config, falling back to a local default
+        // so the app still starts if the configuration entry is missing.
+        private static string GetConnectionString()
+        {
+            var configured = System.Configuration.ConfigurationManager
+                .ConnectionStrings["CyberAwarenessBot"];
+
+            if (configured != null && !string.IsNullOrWhiteSpace(configured.ConnectionString))
+                return configured.ConnectionString;
+
+            return "server=localhost;port=3306;database=cyberawarenessbot;uid=root;pwd=Salome@123;";
         }
 
         private void InitializeChatbot()
@@ -83,24 +111,38 @@ namespace CyberAwarenessBot
             AddBotMessage(welcome);
         }
 
-        // Add this new method for audio playback
+        // Plays the startup greeting. Tries the copied file in the output folder first, then
+        // falls back to the audio embedded in the assembly so it works even if the file is missing.
         private void PlayGreetingAudio()
         {
             try
             {
                 string audioPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "greeting.wav");
-                
+
                 if (System.IO.File.Exists(audioPath))
                 {
                     using (SoundPlayer player = new SoundPlayer(audioPath))
                     {
                         player.PlaySync(); // Play audio synchronously
                     }
+                    return;
                 }
-                else
+
+                // Fallback: play the WAV embedded in the assembly (Build Action: Embedded Resource).
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream("CyberAwarenessBot.Resources.greeting.wav"))
                 {
-                    System.Diagnostics.Debug.WriteLine($"Audio file not found: {audioPath}");
+                    if (stream != null)
+                    {
+                        using (SoundPlayer player = new SoundPlayer(stream))
+                        {
+                            player.PlaySync();
+                        }
+                        return;
+                    }
                 }
+
+                System.Diagnostics.Debug.WriteLine($"Audio file not found on disk ({audioPath}) or as an embedded resource.");
             }
             catch (Exception ex)
             {
@@ -245,8 +287,16 @@ namespace CyberAwarenessBot
             AddUserMessage(input);
             UserInputTextBox.Clear();
 
-            string response = HandleIntegratedInput(input);
-            AddBotMessage(response);
+            try
+            {
+                string response = HandleIntegratedInput(input);
+                AddBotMessage(response);
+            }
+            catch (Exception ex)
+            {
+                AddBotMessage($"Sorry, something went wrong while handling that: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error handling input: {ex}");
+            }
         }
 
         private string HandleIntegratedInput(string input)
@@ -376,28 +426,35 @@ namespace CyberAwarenessBot
                 reminder = parsedReminder;
             }
 
-            var task = taskAssistant.AddTask(title, description, null);
-
-            // If user provided a reminder in the form field, set it immediately
-            if (reminder.HasValue)
+            try
             {
-                taskAssistant.SetReminder(task.Id, reminder);
-                AddBotMessage($"✓ I've added your task: #{task.Id} - {task.Title}\nReminder set for {reminder.Value:yyyy-MM-dd HH:mm}.");
-                activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added with reminder {reminder.Value:yyyy-MM-dd HH:mm}.");
+                var task = taskAssistant.AddTask(title, description, null);
+
+                // If user provided a reminder in the form field, set it immediately
+                if (reminder.HasValue)
+                {
+                    taskAssistant.SetReminder(task.Id, reminder);
+                    AddBotMessage($"✓ I've added your task: #{task.Id} - {task.Title}\nReminder set for {reminder.Value:yyyy-MM-dd HH:mm}.");
+                    activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added with reminder {reminder.Value:yyyy-MM-dd HH:mm}.");
+                }
+                else
+                {
+                    // Start reminder conversation so user can reply 'yes' or provide a natural language time
+                    pendingTaskIdForReminder = task.Id;
+                    awaitingReminderResponse = true;
+
+                    AddBotMessage($"✓ Task added: #{task.Id} - {task.Title}\n\nWould you like to set a reminder? (yes/no or specify time like 'in 3 days', 'tomorrow at 3pm')");
+                    activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added. Awaiting reminder response.");
+                }
+
+                TaskTitleTextBox.Clear();
+                TaskDescriptionTextBox.Clear();
+                TaskReminderTextBox.Clear();
             }
-            else
+            catch (Exception ex)
             {
-                // Start reminder conversation so user can reply 'yes' or provide a natural language time
-                pendingTaskIdForReminder = task.Id;
-                awaitingReminderResponse = true;
-
-                AddBotMessage($"✓ Task added: #{task.Id} - {task.Title}\n\nWould you like to set a reminder? (yes/no or specify time like 'in 3 days', 'tomorrow at 3pm')");
-                activityLogger.Log("Task Added", $"Task #{task.Id} '{task.Title}' added. Awaiting reminder response.");
+                MessageBox.Show($"Could not save the task: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
-            TaskTitleTextBox.Clear();
-            TaskDescriptionTextBox.Clear();
-            TaskReminderTextBox.Clear();
 
             RefreshTasks();
             RefreshActivityLog();
@@ -428,8 +485,16 @@ namespace CyberAwarenessBot
                 return;
             }
 
-            taskAssistant.CompleteTask(task.Id);
-            AddBotMessage($"Task #{task.Id} marked as completed.");
+            try
+            {
+                taskAssistant.CompleteTask(task.Id);
+                AddBotMessage($"Task #{task.Id} marked as completed.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not update the task: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
             RefreshTasks();
             RefreshActivityLog();
         }
@@ -443,8 +508,16 @@ namespace CyberAwarenessBot
                 return;
             }
 
-            taskAssistant.DeleteTask(task.Id);
-            AddBotMessage($"Task #{task.Id} deleted.");
+            try
+            {
+                taskAssistant.DeleteTask(task.Id);
+                AddBotMessage($"Task #{task.Id} deleted.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not delete the task: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
             RefreshTasks();
             RefreshActivityLog();
         }

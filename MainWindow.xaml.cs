@@ -62,7 +62,7 @@ namespace CyberAwarenessBot
         {
             try
             {
-                string connectionString = GetConnectionString();
+                string connectionString = "server=localhost;port=3306;database=cyberawarenessbot;uid=root;pwd=Salome@123;";
                 taskRepository = new MySqlTaskRepository(connectionString);
                 taskRepository.InitializeDatabase();
 
@@ -80,19 +80,6 @@ namespace CyberAwarenessBot
             }
         }
 
-        // Reads the MySQL connection string from App.config, falling back to a local default
-        // so the app still starts if the configuration entry is missing.
-        private static string GetConnectionString()
-        {
-            var configured = System.Configuration.ConfigurationManager
-                .ConnectionStrings["CyberAwarenessBot"];
-
-            if (configured != null && !string.IsNullOrWhiteSpace(configured.ConnectionString))
-                return configured.ConnectionString;
-
-            return "server=localhost;port=3306;database=cyberawarenessbot;uid=root;pwd=Salome@123;";
-        }
-
         private void InitializeChatbot()
         {
             engine = new ChatbotEngine(
@@ -108,18 +95,17 @@ namespace CyberAwarenessBot
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                string resourceName = "CyberAwarenessBot.Resources.greeting.wav";
+                string resourceName = "CyberAwarenessBot.Resources.GreetingAudio.wav";
                 using (var stream = assembly.GetManifestResourceStream(resourceName))
                 {
                     if (stream != null)
                     {
                         greetingSoundPlayer = new SoundPlayer(stream);
-                        greetingSoundPlayer.Load(); // read the stream fully before it is disposed
                         greetingSoundPlayer.Play();
                     }
                     else
                     {
-                        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "greeting.wav");
+                        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "GreetingAudio.wav");
                         if (File.Exists(filePath))
                         {
                             greetingSoundPlayer = new SoundPlayer(filePath);
@@ -574,20 +560,12 @@ namespace CyberAwarenessBot
             if (!string.IsNullOrWhiteSpace(reminderInput) && DateTime.TryParse(reminderInput, out DateTime parsed))
                 reminder = parsed;
 
-            try
-            {
-                var task = taskAssistant.AddTask(title, description, reminder);
-                AddBotMessage($"✅ Task added: #{task.Id} - {task.Title}" +
-                              (task.ReminderAt.HasValue ? $"\n⏰ Reminder set for {task.ReminderAt.Value:yyyy-MM-dd HH:mm}" : ""));
-                TaskTitleTextBox.Clear();
-                TaskDescriptionTextBox.Clear();
-                TaskReminderTextBox.Clear();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Could not save the task: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-
+            var task = taskAssistant.AddTask(title, description, reminder);
+            AddBotMessage($"✅ Task added: #{task.Id} - {task.Title}" +
+                          (task.ReminderAt.HasValue ? $"\n⏰ Reminder set for {task.ReminderAt.Value:yyyy-MM-dd HH:mm}" : ""));
+            TaskTitleTextBox.Clear();
+            TaskDescriptionTextBox.Clear();
+            TaskReminderTextBox.Clear();
             RefreshTasks();
             RefreshActivityLog();
         }

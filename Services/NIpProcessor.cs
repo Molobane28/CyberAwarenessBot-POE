@@ -178,12 +178,47 @@ namespace CyberAwarenessBot
                 int idx = lowered.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
                 if (idx >= 0)
                 {
-                    string title = input.Substring(idx + prefix.Length).Trim(' ', '-', ':', '.', '?');
+                    string title = CleanTitle(input.Substring(idx + prefix.Length));
                     if (!string.IsNullOrWhiteSpace(title)) return title;
                 }
             }
 
-            return input.Trim();
+            return CleanTitle(input);
+        }
+
+        /// <summary>
+        /// Trims surrounding punctuation and strips leading connector words
+        /// (e.g. "to review my privacy settings" -> "review my privacy settings")
+        /// so extracted task/reminder titles read naturally.
+        /// </summary>
+        private static string CleanTitle(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return s;
+
+            s = s.Trim(' ', '-', ':', '.', '?', '!', ',');
+
+            string[] leading = { "to ", "a ", "an ", "the ", "for ", "about ", "that " };
+            bool changed = true;
+            while (changed)
+            {
+                changed = false;
+                foreach (var w in leading)
+                {
+                    if (s.StartsWith(w, StringComparison.OrdinalIgnoreCase))
+                    {
+                        s = s.Substring(w.Length).Trim();
+                        changed = true;
+                    }
+                }
+            }
+
+            s = s.Trim(' ', '-', ':', '.', '?', '!', ',');
+
+            // Capitalise the first letter so titles read like "Review my privacy settings".
+            if (s.Length > 0)
+                s = char.ToUpperInvariant(s[0]) + s.Substring(1);
+
+            return s;
         }
 
         private static string ExtractReminderTitle(string input)
@@ -192,7 +227,11 @@ namespace CyberAwarenessBot
 
             string[] markers = {
                 "remind me to", "remind me about", "remind me",
-                "set reminder for", "set a reminder for"
+                "set a reminder to", "set a reminder for", "set a reminder about",
+                "set reminder to", "set reminder for", "set reminder about",
+                "create a reminder to", "create a reminder for", "create a reminder about",
+                "new reminder to", "new reminder for", "new reminder about",
+                "reminder to", "reminder for", "reminder about"
             };
 
             foreach (var marker in markers)
@@ -201,34 +240,45 @@ namespace CyberAwarenessBot
                 if (idx >= 0)
                 {
                     string rest = input.Substring(idx + marker.Length).Trim();
-
-                    string[] timeWords = { "tomorrow", "today", "next", "in", "on", "at", "by" };
-                    foreach (var tw in timeWords)
-                    {
-                        int timeIdx = rest.ToLowerInvariant().LastIndexOf(tw);
-                        if (timeIdx > 0)
-                        {
-                            return rest.Substring(0, timeIdx).Trim(' ', '-', ':', '.', '?');
-                        }
-                    }
-                    return rest.Trim(' ', '-', ':', '.', '?');
+                    return CleanTitle(StripTrailingTimePhrase(rest));
                 }
             }
 
-            return input.Trim();
+            return CleanTitle(input);
+        }
+
+        // Time words that, when they appear as a standalone word, mark the start
+        // of a time expression (e.g. "update my password in 3 days").
+        private static readonly string[] TimeWords =
+            { "tomorrow", "today", "tonight", "next", "in", "on", "at", "by", "this" };
+
+        /// <summary>
+        /// Removes a trailing time expression from a title using whole-word matching,
+        /// so "enable authentication" is not truncated at the "at" inside the word.
+        /// </summary>
+        private static string StripTrailingTimePhrase(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+
+            string[] words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < words.Length; i++)
+            {
+                string w = words[i].Trim(',', '.', '?', '!').ToLowerInvariant();
+                if (Array.IndexOf(TimeWords, w) >= 0)
+                    return string.Join(" ", words, 0, i);
+            }
+            return text;
         }
 
         private static string ExtractTimeFromInput(string input)
         {
-            string lower = input.ToLowerInvariant();
-            string[] timeMarkers = { "tomorrow", "today", "next", "in", "on", "at", "by" };
-
-            foreach (var marker in timeMarkers)
+            string[] words = input.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < words.Length; i++)
             {
-                int idx = lower.LastIndexOf(marker);
-                if (idx >= 0)
+                string w = words[i].Trim(',', '.', '?', '!').ToLowerInvariant();
+                if (Array.IndexOf(TimeWords, w) >= 0)
                 {
-                    string timePart = input.Substring(idx).Trim();
+                    string timePart = string.Join(" ", words, i, words.Length - i).Trim();
                     if (timePart.Length < 50)
                         return timePart;
                 }

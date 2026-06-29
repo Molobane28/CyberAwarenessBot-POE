@@ -339,21 +339,30 @@ namespace CyberAwarenessBot
             {
                 string title = intent.ExtractedTitle;
                 if (string.IsNullOrWhiteSpace(title))
-                    title = input.Replace("remind me", "").Replace("remind me to", "").Trim();
-
-                if (string.IsNullOrWhiteSpace(title))
                     return "What would you like me to remind you about?";
 
-                DateTime? reminderTime = ParseNaturalLanguageTime(intent.ExtractedTime ?? "tomorrow at 9am");
-                if (!reminderTime.HasValue)
-                    reminderTime = DateTime.Now.AddDays(1).Date.AddHours(9);
+                // Only parse a time if the user actually supplied one in the same message.
+                DateTime? reminderTime = null;
+                if (!string.IsNullOrWhiteSpace(intent.ExtractedTime))
+                    reminderTime = ParseNaturalLanguageTime(intent.ExtractedTime);
 
                 var task = taskAssistant.AddTask(title, null, reminderTime);
                 RefreshTasks();
                 RefreshActivityLog();
 
-                string formatted = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
-                return $"✅ Reminder set for '{task.Title}' on {formatted}.";
+                if (reminderTime.HasValue)
+                {
+                    return $"✅ Reminder set for {DescribeRelative(reminderTime.Value)}. " +
+                           $"I'll remind you to {LowerFirst(task.Title)}.";
+                }
+
+                // No time given yet — keep the conversation going and ask for one.
+                pendingTaskWithReminder = task;
+                awaitingReminderResponse = true;
+                activityLogger.Log("Reminder Prompt", $"Asked user for a time for task #{task.Id}");
+                Dispatcher.Invoke(() => StatusBar.Text = "⏳ Awaiting reminder time...");
+
+                return $"✅ Reminder set for '{task.Title}'. When would you like to be reminded?";
             }
             catch (Exception ex)
             {
@@ -383,7 +392,8 @@ namespace CyberAwarenessBot
                 activityLogger.Log("Reminder Prompt", $"Asked user for reminder on task #{newTask.Id}");
                 Dispatcher.Invoke(() => StatusBar.Text = "⏳ Awaiting reminder reply...");
 
-                return $"✅ Task added: #{newTask.Id} - {taskTitle}\n\n⏰ Would you like to set a reminder?\n(Reply with: yes, no, or a time like 'in 3 days', 'tomorrow at 3pm', 'Monday at 10am')";
+                return $"✅ Task added: '{newTask.Title}'. Would you like to set a reminder?\n" +
+                       "(Reply 'yes', 'no', or a time like 'in 7 days' or 'tomorrow at 3pm'.)";
             }
             catch (Exception ex)
             {
@@ -412,14 +422,8 @@ namespace CyberAwarenessBot
                     return $"Okay, I won't set a reminder for '{taskTitle}'.";
                 }
 
-                // Handle "yes" – ask for time
-                if (lower == "yes" || lower == "y" || lower == "sure" || lower == "ok" || lower == "yeah")
-                {
-                    Dispatcher.Invoke(() => StatusBar.Text = "⏳ Please provide a time...");
-                    return "⏰ What time would you like to be reminded?\n\nExamples:\n- '4 days'\n- 'in 3 days'\n- 'tomorrow at 3pm'\n- 'next Monday at 9am'\n- 'Wednesday'\n- 'Friday 4:30pm'\n- '2026-07-15 10:00'";
-                }
-
-                // Try to parse a time from the input
+                // Try to parse a time from the input first, so combined replies like
+                // "Yes, remind me in 7 days" are handled in one step.
                 DateTime? reminderTime = ParseNaturalLanguageTime(input);
                 if (reminderTime.HasValue)
                 {
@@ -428,7 +432,6 @@ namespace CyberAwarenessBot
                     RefreshTasks();
                     RefreshActivityLog();
 
-                    string formattedTime = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
                     string taskTitle = pendingTaskWithReminder.Title;
 
                     // Clear state
@@ -436,23 +439,28 @@ namespace CyberAwarenessBot
                     pendingTaskWithReminder = null;
                     Dispatcher.Invoke(() => StatusBar.Text = "");
 
-                    activityLogger.Log("Reminder Set", $"Reminder set for task '{taskTitle}' at {formattedTime}");
+                    activityLogger.Log("Reminder Set", $"Reminder set for task '{taskTitle}' at {reminderTime.Value:yyyy-MM-dd HH:mm}");
 
-                    return $"✅ Got it! I'll remind you about '{taskTitle}' on {formattedTime}.";
+                    return $"✅ Reminder set for {DescribeRelative(reminderTime.Value)}. " +
+                           $"I'll remind you to {LowerFirst(taskTitle)}.";
                 }
-                else
+
+                // Affirmative without a time – ask for the time.
+                if (lower == "yes" || lower == "y" || lower == "sure" || lower == "ok" ||
+                    lower == "okay" || lower == "yeah" || lower == "yep" || lower.StartsWith("yes"))
                 {
-                    return "❌ I didn't understand that time format. Please try again with:\n\n" +
-                           "Examples:\n" +
-                           "- '4 days'\n" +
-                           "- 'in 3 days'\n" +
-                           "- 'tomorrow at 3pm'\n" +
-                           "- 'next Monday at 9am'\n" +
-                           "- 'Wednesday'\n" +
-                           "- 'Friday 4:30pm'\n" +
-                           "- '2026-07-15 10:00'\n" +
-                           "- or type 'no' to skip the reminder";
+                    Dispatcher.Invoke(() => StatusBar.Text = "⏳ Please provide a time...");
+                    return "⏰ When would you like to be reminded?\n\nExamples:\n- 'in 7 days'\n- 'tomorrow at 3pm'\n- 'next Monday at 9am'\n- 'Friday 4:30pm'\n- '2026-07-15 10:00'";
                 }
+
+                return "❌ I didn't understand that time. Please try again with:\n\n" +
+                       "Examples:\n" +
+                       "- 'in 7 days'\n" +
+                       "- 'tomorrow at 3pm'\n" +
+                       "- 'next Monday at 9am'\n" +
+                       "- 'Friday 4:30pm'\n" +
+                       "- '2026-07-15 10:00'\n" +
+                       "- or type 'no' to skip the reminder";
             }
             catch (Exception ex)
             {
@@ -462,6 +470,44 @@ namespace CyberAwarenessBot
                 Dispatcher.Invoke(() => StatusBar.Text = "");
                 return $"❌ Error setting reminder: {ex.Message}";
             }
+        }
+
+        // ===================== PHRASING HELPERS =====================
+
+        /// <summary>
+        /// Describes a future time relative to now in friendly language,
+        /// e.g. "7 days from now", "3 hours from now", or a date for distant times.
+        /// </summary>
+        private static string DescribeRelative(DateTime when)
+        {
+            TimeSpan diff = when - DateTime.Now;
+
+            if (diff.TotalSeconds <= 0)
+                return when.ToString("dddd, MMMM d 'at' h:mm tt");
+
+            int minutes = (int)Math.Round(diff.TotalMinutes);
+            if (minutes < 60)
+                return $"{minutes} minute{(minutes == 1 ? "" : "s")} from now";
+
+            int hours = (int)Math.Round(diff.TotalHours);
+            if (hours < 24)
+                return $"{hours} hour{(hours == 1 ? "" : "s")} from now";
+
+            int days = (int)Math.Round(diff.TotalDays);
+            if (days <= 14)
+                return $"{days} day{(days == 1 ? "" : "s")} from now ({when:dddd, MMMM d 'at' h:mm tt})";
+
+            return when.ToString("dddd, MMMM d, yyyy 'at' h:mm tt");
+        }
+
+        /// <summary>
+        /// Lowercases the first character of a phrase so it reads naturally mid-sentence
+        /// (e.g. "Enable two-factor authentication" -> "enable two-factor authentication").
+        /// </summary>
+        private static string LowerFirst(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            return char.ToLowerInvariant(s[0]) + s.Substring(1);
         }
 
         // ===================== NATURAL LANGUAGE TIME PARSING =====================

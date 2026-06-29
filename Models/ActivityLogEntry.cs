@@ -2,6 +2,9 @@
 
 namespace CyberAwarenessBot
 {
+    /// <summary>
+    /// Represents a single activity log entry with timestamp
+    /// </summary>
     public class ActivityLogEntry
     {
         public DateTime Timestamp { get; set; }

@@ -16,9 +16,6 @@ namespace CyberAwarenessBot
             this.connectionString = connectionString;
         }
 
-        /// <summary>
-        /// Initialize database - create table if not exists
-        /// </summary>
         public void InitializeDatabase()
         {
             try
@@ -50,9 +47,6 @@ namespace CyberAwarenessBot
             }
         }
 
-        /// <summary>
-        /// Add a new task to the database
-        /// </summary>
         public int AddTask(CyberTask task)
         {
             try
@@ -85,9 +79,6 @@ namespace CyberAwarenessBot
             }
         }
 
-        /// <summary>
-        /// Get all tasks from the database
-        /// </summary>
         public List<CyberTask> GetAllTasks()
         {
             var tasks = new List<CyberTask>();
@@ -127,9 +118,6 @@ namespace CyberAwarenessBot
             return tasks;
         }
 
-        /// <summary>
-        /// Get a specific task by ID
-        /// </summary>
         public CyberTask GetTaskById(int id)
         {
             try
@@ -171,9 +159,6 @@ namespace CyberAwarenessBot
             return null;
         }
 
-        /// <summary>
-        /// Mark a task as completed
-        /// </summary>
         public void MarkCompleted(int id)
         {
             try
@@ -203,9 +188,6 @@ namespace CyberAwarenessBot
             }
         }
 
-        /// <summary>
-        /// Delete a task from the database
-        /// </summary>
         public void DeleteTask(int id)
         {
             try
@@ -235,9 +217,6 @@ namespace CyberAwarenessBot
             }
         }
 
-        /// <summary>
-        /// Update reminder for a task
-        /// </summary>
         public void UpdateReminder(int id, DateTime? reminderAt)
         {
             try

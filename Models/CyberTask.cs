@@ -2,6 +2,9 @@
 
 namespace CyberAwarenessBot
 {
+    /// <summary>
+    /// Represents a cybersecurity task with reminder functionality
+    /// </summary>
     public class CyberTask
     {
         public int Id { get; set; }

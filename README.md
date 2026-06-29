@@ -1,173 +1,545 @@
- # CyberAwarenessBot
+CyberGuard AI - Cybersecurity Awareness Chatbot
+Table of Contents
+Project Overview
 
-CyberAwarenessBot is a simple WPF desktop chatbot prototype that provides cybersecurity tips and guidance. It demonstrates a small, modular architecture with a UI, a lightweight rule-based sentiment analyzer, a keyword-driven response provider, and an in-memory user memory store. YYYESSS
+System Architecture
 
----
+Technology Stack
 
-## Table of Contents
+Project Structure
+
+Detailed Component Breakdown
 
-- [Project overview](#project-overview)
-- [Prerequisites](#prerequisites)
-- [Setup and run](#setup-and-run)
-- [Project structure (file-by-file)](#project-structure-file-by-file)
-- [How the main components work](#how-the-main-components-work)
-- [Adding content (resources, tips)](#adding-content-resources-tips)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+Part 1: Core Chatbot & Sentiment Analysis
 
----
+Part 2: Keyword Responses & User Memory
 
-## Project overview
+Part 3: Task Management, Quiz & Activity Log
 
-`CyberAwarenessBot` is a Windows Presentation Foundation (WPF) application that accepts user input in a chat UI and replies with cybersecurity tips. It includes:
+Database Schema
 
-- A UI layer (`MainWindow`) that renders user/bot message bubbles, a sentiment indicator and a small user memory panel.
-- A small engine layer (`ChatbotEngine`) that manages conversation state, onboarding (name/topic/level), sentiment integration and delegates to the response provider.
-- A `KeywordResponseProvider` that stores topic tips and returns a random tip for a matched keyword.
-- A rule-based `SentimentAnalyzer` used to form tone prefixes and to update a visible sentiment indicator.
-- An in-memory `UserMemory` used to persist small user attributes during a session.
+How to Run the Application
 
----
+Features Walkthrough
 
-## Prerequisites
+Troubleshooting
+Project Overview
+CyberGuard AI is a comprehensive WPF (Windows Presentation Foundation) desktop application designed to educate users about cybersecurity best practices through interactive conversation. The application combines a chatbot with sentiment analysis, task management, a cybersecurity quiz, and activity logging—all backed by a MySQL database.
 
-- Microsoft Visual Studio 2022/2025/2026 (Community or higher) with .NET desktop development workload installed.
-- .NET Framework 4.7.2 (project targets `v4.7.2`).
-- Optional: `Resources/greeting.wav` if you want voice greeting playback.
+The project is structured in three progressive parts, each building upon the previous to create a fully integrated solution:
 
-> Note: The project folder is currently inside OneDrive in this workspace. OneDrive (or other sync/antivirus software) may lock files in `bin/` or `obj/` during builds. Consider excluding the project folder or `bin`/`obj` from sync if you see file-lock errors.
+Part 1: Core chatbot engine with sentiment analysis and dynamic responses
 
----
+Part 2: Keyword recognition, user memory, and contextual responses
 
-## Setup and run
+Part 3: Task assistant with reminders, cybersecurity quiz, NLP simulation, and activity logging
 
-1. Open `CyberAwarenessBot.sln` (or the folder containing `CyberAwarenessBot.csproj`) in Visual Studio.
-2. Restore any missing workloads or SDKs if Visual Studio prompts.
-3. Build the solution (`Build` → `Build Solution`).
-4. If Visual Studio reports that the EXE is locked (MSB3026/MSB3027):
-   - Stop debugging if the app is currently running (Debug → Stop Debugging).
-   - Kill the process using Task Manager or PowerShell (example):
-     - `Get-Process -Id 7320` (inspect)
-     - `Stop-Process -Id 7320 -Force`
-     - Or by name: `Stop-Process -Name CyberAwarenessBot -Force`
-   - Clean (`Build` → `Clean Solution`) and rebuild.
-5. Run the app (`Debug` → `Start Debugging` or `Start Without Debugging`).
+Project Overview
+CyberGuard AI is a comprehensive WPF (Windows Presentation Foundation) desktop application designed to educate users about cybersecurity best practices through interactive conversation. The application combines a chatbot with sentiment analysis, task management, a cybersecurity quiz, and activity logging—all backed by a MySQL database.
 
-When running, the application will ask for your name as part of onboarding, then ask for your favourite cybersecurity topic and experience level.
+The project is structured in three progressive parts, each building upon the previous to create a fully integrated solution:
 
----
+Part 1: Core chatbot engine with sentiment analysis and dynamic responses
 
-## Project structure (file-by-file)
+Part 2: Keyword recognition, user memory, and contextual responses
 
-Top-level project files
+Part 3: Task assistant with reminders, cybersecurity quiz, NLP simulation, and activity logging
 
-- `CyberAwarenessBot.csproj` - MSBuild project file with references and build settings.
-- `App.xaml`, `App.xaml.cs` - WPF application definition and global startup logic. `App.xaml.cs` registers global exception handlers.
-- `MainWindow.xaml`, `MainWindow.xaml.cs` - Main UI and code-behind. Handles rendering messages, user input, buttons and visual feedback (ASCII art, sentiment, memory panel).
+Project Overview
+CyberGuard AI is a comprehensive WPF (Windows Presentation Foundation) desktop application designed to educate users about cybersecurity best practices through interactive conversation. The application combines a chatbot with sentiment analysis, task management, a cybersecurity quiz, and activity logging—all backed by a MySQL database.
 
-Source files (core logic)
+The project is structured in three progressive parts, each building upon the previous to create a fully integrated solution:
 
-- `Services/ChatbotEngine.cs` - Central engine. Handles onboarding flow, records conversation state (`ConversationState`), invokes `SentimentAnalyzer`, and asks `KeywordResponseProvider` for replies. Builds help/farewell messages.
-- `Services/KeywordResponseProvider.cs` - A dictionary-based knowledge base and alias map. Exposes `GetResponse` and `GetFollowUpFor`.
-- `Services/SentimentAnalyzer.cs` - Small rule-based sentiment detector. Produces `SentimentResult` (label, emoji, tone prefix) and raises sentiment changed events.
+Part 1: Core chatbot engine with sentiment analysis and dynamic responses
 
-Models
+Part 2: Keyword recognition, user memory, and contextual responses
 
-- `Models/ConversationState.cs` - Tracks onboarding phase, last topic, whether a follow-up is expected, and recent user inputs (FIFO up to `MaxHistory`).
-- `Models/SentimentResult.cs` - DTO with `Label`, `Emoji`, and `TonePrefix` used to format replies and update UI.
-- `Models/UserMemory.cs` - In-memory key/value store implementing `IMemory` and convenience properties (`UserName`, `FavouriteTopic`, `ExperienceLevel`).
+Part 3: Task assistant with reminders, cybersecurity quiz, NLP simulation, and activity logging
 
-Interfaces
+Technology Stack
+Component	Technology
+Frontend	WPF (Windows Presentation Foundation) with XAML
+Language	C# (.NET Framework 4.7.2 / .NET Core)
+Database	MySQL 8.0+
+Database Connector	MySql.Data (NuGet package)
+Audio	System.Media (SoundPlayer)
+Pattern Matching	Regex (System.Text.RegularExpressions)
+UI Styles	Custom XAML with dark theme (CyberGuard AI branding)
 
-- `Interfaces/IResponseProvider.cs` - Defines `string GetResponse(string input, ConversationState state);` for pluggable response providers.
-- `Interfaces/IMemory.cs` - Interface implemented by `UserMemory` (simple key/value API).
+Project Structure
+CyberAwarenessBot/
+│
+├── App.xaml                          # Application resources and styles
+├── App.xaml.cs                       # Global exception handling
+├── MainWindow.xaml                   # Main UI with chat, tabs, and controls
+├── MainWindow.xaml.cs                # All UI logic and event handlers
+├── App.config                        # Assembly binding redirects
+│
+├── Models/                           # Data models
+│   ├── CyberTask.cs                  # Task entity with reminder properties
+│   ├── ActivityLogEntry.cs           # Log entry with timestamp
+│   ├── NlpIntentResult.cs            # NLP processing result
+│   ├── QuizQuestion.cs               # Quiz question with options
+│   ├── QuizSession.cs                # Active quiz session state
+│   ├── UserMemory.cs                 # User profile storage
+│   ├── ConversationState.cs          # Chat session state
+│   └── SentimentResult.cs            # Sentiment analysis result
+│
+├── Interfaces/                       # Service contracts
+│   ├── ITaskRepository.cs            # CRUD operations for tasks
+│   └── IActivityLogger.cs            # Logging operations
+│
+├── Services/                         # Business logic services
+│   ├── ChatbotEngine.cs              # Main conversation engine
+│   ├── KeywordResponseProvider.cs    # Topic-specific responses
+│   ├── SentimentAnalyzer.cs          # Sentiment detection
+│   ├── NlpProcessor.cs               # Intent detection and extraction
+│   ├── TaskAssistantService.cs       # Task management logic
+│   ├── MySqlTaskRepository.cs        # MySQL database operations
+│   ├── ActivityLogger.cs             # In-memory activity logging
+│   └── QuizService.cs                # Quiz management and scoring
+│
+├── Resources/                        # Embedded resources
+│   └── GreetingAudio.wav             # Startup greeting sound
+│
+└── Scripts/                          # Database scripts
+    └── cyberawarenessbot.sql         # Database schema and sample data
+ Detailed Component Breakdown
+Part 1: Core Chatbot & Sentiment Analysis
+1.1 SentimentAnalyzer.cs
+Purpose: Detects user sentiment based on keyword matching.
 
-Properties (auto-generated)
+How it works:
 
-- `Properties/Resources.Designer.cs`, `Properties/Settings.Designer.cs` - Auto-generated resource and settings wrappers. Update `.resx` / settings then rebuild.
+Maintains a dictionary of keywords mapped to sentiment categories (Worried, Curious, Frustrated, Neutral)
 
-Resources
+Uses case-insensitive string.Contains() to scan user input
 
-- `Resources/` - Folder for static assets. Add `greeting.wav` here to enable the voice greeting feature used by the UI.
+When sentiment changes, raises an event that updates the UI indicator
 
----
+Returns a SentimentResult with label, emoji, and tone prefix   
 
-## How the main components work (high level)
+1.2 ChatbotEngine.cs
+Purpose: Manages conversation flow, onboarding, and response generation.
 
-- `MainWindow.xaml.cs` handles UI events (send button, Enter key, quick-topic buttons, voice greeting button) and uses `ChatbotEngine` to process user input. It renders user and bot messages as styled bubbles and updates sentiment and memory UI panels via callbacks the engine provides.
+How it works:
 
-- `ChatbotEngine` maintains a `ConversationState` which records onboarding phase and recent inputs. On first runs it walks the user through an onboarding flow: ask name, ask topic, ask level. After onboarding it processes messages:
-  - Check for exit phrases (returns farewell)
-  - Run `SentimentAnalyzer.Analyse` to get `SentimentResult` and possibly update UI via event/callback
-  - If the user requests a follow-up ("tell me more"), attempt to return a follow-up tip for the last topic
-  - Otherwise ask `KeywordResponseProvider.GetResponse` for a topic tip
-  - If nothing matched, return a fallback message or the help message
+Onboarding Flow: Asks for name → favourite topic → experience level
 
-- `KeywordResponseProvider` uses a canonical `Dictionary<string,string[]>` mapping to topic tips and a small alias dictionary to normalize user terms (e.g., "two factor" → `2fa`). It randomly selects one of the tips to vary responses.
+Response Generation:
 
-- `SentimentAnalyzer` is rule-based and keyword-driven. It maps indicative words/phrases to sentiment labels (`Worried`, `Curious`, `Frustrated`). When it detects a change in sentiment it raises `OnSentimentChanged` to let the UI update an emoji + color scheme. It also returns a tone prefix that the engine prepends to replies.
+Checks for exit phrases (bye, goodbye, etc.)
 
----
+Analyzes sentiment
 
-## Adding or modifying tips and resources
+Checks for follow-up requests ("tell me more", "another tip")
 
-- To add topics or tips, edit `Services/KeywordResponseProvider.cs` and add new entries to `_knowledgeBase` or update `_aliases`.
-- To modify sentiment rules or tone prefixes, edit `Services/SentimentAnalyzer.cs`.
-- To add voice greeting audio, place `greeting.wav` into the `Resources` folder in the project root.
+Looks up keyword-based responses
 
----
+Falls back to general cybersecurity tips
 
-## Troubleshooting
+Personalization: Uses user's name, favourite topic, and experience level to tailor responses
+Part 2: Keyword Responses & User Memory
+2.1 KeywordResponseProvider.cs
+Purpose: Provides topic-specific cybersecurity responses.
 
-- Build fails with "file is being used by another process" (MSB3026 / MSB3027): stop the running app, kill the `CyberAwarenessBot` process (Task Manager or PowerShell), clean and rebuild.
-- If UI resources (brushes, controls referenced by `FindResource`) are missing, ensure `MainWindow.xaml` contains the resource keys: `UserBubbleBrush`, `BotBubbleBrush`, `AccentGreenBrush`, `AccentBlueBrush`, `TextPrimaryBrush`, `TextMutedBrush`, `BorderBrush2`.
-- If audio playback fails, verify `Resources/greeting.wav` exists and is a valid WAV file.
+How it works:
 
----
+Maintains a dictionary of topics → array of responses
 
-## Screenshots
+Each topic has multiple response variations for variety
 
-Paste three screenshots showing the app running. Use the Markdown image format and relative paths (or full URLs) to include them here:
+Provides follow-up responses when user asks "tell me more"
 
-- Screenshot 1 - onboarding / welcome screen
+Supported Topics:
 
-  ![Screenshot 1](path/to/screenshot1.png)
+Topic	Sample Response
+password	"🔑 Strong passwords are essential. Use at least 12 characters..."
+phishing	"🎣 Phishing attacks try to steal your information..."
+2fa	"🔐 Two-Factor Authentication adds a second verification step..."
+malware	"🦠 Malware includes viruses, ransomware, and spyware..."
+privacy	"🛡️ Review your privacy settings on social media regularly..."
+scam	"⚠️ Scammers often impersonate banks, government agencies..."
+ransomware	"💰 Ransomware encrypts your files and demands payment..."
+2.2 UserMemory.cs & ConversationState.cs
+Purpose: Store user preferences and conversation context.
 
-- Screenshot 2 - conversation with a topic/tip shown
+UserMemory Properties:
 
-  ![Screenshot 2](path/to/screenshot2.png)
+UserName - User's name
 
-- Screenshot 3 - sentiment indicator / memory panel
+FavouriteTopic - Preferred cybersecurity topic
 
-  ![Screenshot 3](path/to/screenshot3.png)
+ExperienceLevel - beginner / intermediate / expert
 
-Replace `path/to/screenshotX.png` with your image filenames (add them to the repo or use external URLs).
+ConversationState Properties:
 
----
+Phase - AskName, AskTopic, AskLevel, Chatting
 
-## Demo video
+LastTopic - Last discussed topic (for follow-ups)
 
-Paste your unlisted YouTube demo link here so markers can view the presentation. Example:
+Part 3: Task Management, Quiz & Activity Log
+3.1 TaskAssistantService.cs & MySqlTaskRepository.cs
+Purpose: Full CRUD operations for cybersecurity tasks with reminders.
 
-YouTube (unlisted): https://youtu.be/your_video_id_here
+How it works:
 
-Replace the URL above with your actual video link.
+Add Task: Creates task in database with title, description, optional reminder
 
----
+Set Reminder: Updates reminderat column with DateTime
 
-## Contributing
+Complete Task: Marks iscompleted as true
 
-- Fork, make changes, test locally and open a pull request. Keep changes focused and add unit tests if you add logic changes.
+Delete Task: Removes from database
 
----
+List Tasks: Retrieves all tasks ordered by creation date
+3.2 QuizService.cs
+Purpose: Manages cybersecurity quiz with 12+ questions.
 
-## License
+Question Types:
 
-Include your project's license here (MIT, Apache-2.0, etc.).
+Multiple Choice (e.g., "Which is the strongest password?")
 
+True/False (e.g., "True or False: It is safe to click a link...")
 
-If you want, I can also:
-- Add inline badges (build status, license)
-- Generate a sample `greeting.wav` placeholder
-- Create a short CONTRIBUTING.md or issue templates
+Features:
+
+Tracks score through quiz session
+
+Provides immediate feedback with explanations
+
+Builds motivational final message based on score
+
+Scoring Feedback:
+
+Score Range	Message
+100%	"Outstanding - you scored 12/12!"
+75-99%	"Well done - you have strong cybersecurity knowledge."
+50-74%	"Nice effort - you're building good cybersecurity awareness."
+<50%	"That's a good start - keep practicing!"
+3.3 NlpProcessor.cs
+Purpose: Simulates natural language processing using keyword detection.
+
+Intents Detected:
+
+Intent	Example Variations	Extracted Data
+addtask	"add task X", "create task X", "new task X", "I want to add X", "make task X"	Title
+remindme	"remind me to X", "remind me about X", "set reminder for X"	Title, Time
+showtasks	"show tasks", "view tasks", "list tasks", "my tasks"	-
+startquiz	"start quiz", "play quiz", "take quiz", "test me"	-
+showactivitylog	"show activity log", "what have you done for me", "history"	-
+3.4 ActivityLogger.cs
+Purpose: In-memory logging of all user actions with timestamps.
+
+Logged Actions:
+
+System startup
+Task added / completed / deleted
+Reminder set / skipped
+Quiz started / answered / completed
+NLP interpretation
+Audio playback status
+Database errors
+
+How to Run the Application
+Prerequisites
+Visual Studio (2019 or 2022) with .NET desktop development workload
+
+MySQL Server (8.0 or higher) running locally
+
+MySQL Workbench (optional, for running scripts)
+
+Features Walkthrough
+1. Chat Interface
+Purpose: Main interaction area where users talk to CyberGuard AI.
+
+How to use:
+
+Type a message in the text box at the bottom
+
+Press Enter or click "Send"
+
+The bot responds with cybersecurity information
+
+Example Interactions:
+
+text
+User: "Hello"
+Bot: "👋 Hello! I'm CyberGuard AI - your personal cybersecurity awareness assistant..."
+
+User: "I'm worried about phishing"
+Bot: [Analyzes sentiment → Worried]
+    "It's completely understandable to feel that way...
+    🎣 Phishing attacks try to steal your information..."
+2. Sentiment Indicator
+Location: Top of chat panel
+
+Purpose: Shows detected sentiment in real-time.
+
+Sentiment	Emoji	When Triggered
+Worried	😟	"worried", "concerned", "scared", "hacked"
+Curious	🤔	"curious", "learn", "want to know"
+Frustrated	😤	"frustrated", "confusing", "overwhelming"
+Neutral	😐	Default
+3. Memory Tab
+Location: Right panel, first tab
+
+Purpose: Displays user profile information collected during onboarding.
+
+Information displayed:
+
+Name
+
+Favourite Topic
+
+Experience Level
+
+4. Tasks Tab
+Location: Right panel, second tab
+
+Purpose: Full task management interface.
+
+Features:
+
+Add Task: Enter Title, Description (optional), Reminder Date (optional)
+
+Refresh: Update task list
+
+Mark Completed: Select a task and click to mark as done
+
+Delete Task: Select a task and remove from database
+
+Chat Integration:
+
+text
+User: "add task enable two-factor authentication"
+Bot: "✅ Task added: #12 - enable two-factor authentication
+     ⏰ Would you like to set a reminder?"
+     
+User: "yes, in 7 days"
+Bot: "✅ Got it! I'll remind you about 'enable two-factor authentication' on Monday, July 6, 2026 at 9:00 AM."
+5. Quiz Tab
+Location: Right panel, third tab
+
+Purpose: Cybersecurity knowledge assessment.
+
+How to play:
+
+Click "Start Quiz" (12 questions loaded)
+
+Read the question
+
+Select one of four options
+
+Click "Submit Answer" for immediate feedback
+
+Click "Next Question" to continue
+
+View final score with motivational message
+
+Activity Log Integration:
+
+"Quiz Started" entry when you begin
+
+"Quiz Answered" entry for each question (with correctness)
+
+"Quiz Completed" entry with final score
+
+6. Activity Log Tab
+Location: Right panel, fourth tab
+
+Purpose: Shows chronological history of all actions.
+
+Features:
+
+Displays last 5 entries by default
+
+"Show More" button increases display count by 5
+
+Entries include timestamps and descriptions
+
+Chat Integration:
+
+text
+User: "show activity log"
+Bot: "📋 Here are the most recent actions:
+     - [2026-06-29 14:30:25] Task Added: Task #12 'Enable Two-Factor Authentication'
+     - [2026-06-29 14:31:10] Reminder Set: Reminder for task #12 at 2026-07-06 14:30
+     - [2026-06-29 14:35:45] Quiz Started: Cybersecurity quiz started with 12 questions"
+Command Reference
+Chat Commands
+Command	Variations	Description
+add task [title]	"create task", "new task", "make task"	Adds a task and prompts for reminder
+show tasks	"view tasks", "list tasks", "my tasks"	Displays all tasks
+start quiz	"play quiz", "take quiz", "test me"	Starts cybersecurity quiz
+show activity log	"what have you done for me", "history", "show log"	Shows recent actions
+remind me to [task]	"set reminder for", "remind me about"	Direct reminder creation
+help	"what can you do", "commands"	Shows available topics and commands
+Task Management Commands
+Complete a task: Select in Tasks tab → Click "Mark Completed"
+
+Delete a task: Select in Tasks tab → Click "Delete Task"
+
+Refresh tasks: Click "Refresh"
+
+Quiz Commands
+Start Quiz: Click button
+
+Submit Answer: Click button after selecting option
+
+Next Question: Click button after submitting answer
+
+Troubleshooting
+Common Issues and Solutions
+1. Database Connection Error
+text
+Error: "Unable to connect to any of the specified MySQL hosts"
+Solution:
+
+Ensure MySQL Server is running
+
+Check connection string in InitializeServices()
+
+Verify MySQL port (default: 3306)
+
+Test connection in MySQL Workbench
+
+2. Missing MySql.Data Assembly
+text
+Error: "The type or namespace name 'MySql' could not be found"
+Solution:
+
+Open NuGet Package Manager
+
+Install MySql.Data package
+
+Rebuild the solution
+
+3. Audio Not Playing
+text
+No error, but audio doesn't play on startup
+Solution:
+
+Ensure GreetingAudio.wav is in Resources folder
+
+Set Build Action to "Embedded Resource"
+
+Check if file is corrupted (try playing manually)
+
+The app will continue without audio (graceful fallback)
+
+4. Reminder Not Setting
+text
+Task added but no reminder prompt appears
+Solution:
+
+Check NlpProcessor detects "add task" phrase
+
+Ensure awaitingReminderResponse is set to true
+
+Verify pendingTaskWithReminder stores the task
+
+Check Activity Log for "Reminder Prompt" entry
+
+5. Quiz Questions Not Loading
+text
+Error: "Failed to load quiz questions"
+Solution:
+
+Check QuizService.CreateDefaultQuiz() has questions
+
+Ensure 12+ questions are defined
+
+Verify each question has options and correct answer
+
+6. Activity Log Not Showing
+text
+Activity Log tab is empty
+Solution:
+
+Perform some actions first (add task, start quiz)
+
+Click "Refresh Log" button
+
+Check ActivityLogger.Log() is being called
+
+Verify ActivityLogListBox.ItemsSource is updated
+
+7. NLP Not Detecting Intents
+text
+Bot responds with "I'm not sure I understand"
+Solution:
+
+Check Output window for [NLP] debug messages
+
+Use exactly one of the supported command variations
+
+Ensure Normalize() method handles input correctly
+
+Add more variations in ContainsAny() patterns
+
+8. Build Errors (Duplicate Classes)
+text
+Error: "The namespace already contains a definition for 'TaskAssistantService'"
+Solution:
+
+Check for duplicate files in Solution Explorer
+
+Ensure only one TaskAssistantService.cs exists
+
+Delete any duplicate files from the project
+
+Performance Considerations
+Database Operations
+All queries use parameterized commands to prevent SQL injection
+
+Connections are opened and closed for each operation
+
+Try-catch blocks prevent crashes on database errors
+
+Memory Management
+Activity Log limits to 100 entries (prevents memory issues)
+
+Tasks are loaded from database on-demand (no caching issues)
+
+SoundPlayer resources are disposed automatically
+
+UI Responsiveness
+All database operations run on UI thread (small data sets)
+
+Chat panel auto-scrolls to latest message
+
+Status bar provides visual feedback during operations
+
+Future Enhancements
+Potential Improvements
+Cloud Sync: Store tasks in cloud database for multi-device access
+
+Push Notifications: Reminders via email or mobile notifications
+
+Speech Recognition: Voice input for hands-free interaction
+
+More Quiz Questions: Add 50+ questions with difficulty levels
+
+Dark/Light Theme: Toggle between themes
+
+Export Data: Export tasks and activity log to CSV/PDF
+
+User Profiles: Multiple users with separate task lists
+
+Achievement System: Badges for completing tasks and quizzes
+
+Credits & Resources
+Technologies Used
+WPF: Microsoft UI framework
+
+MySQL: Database management system
+
+MySql.Data: Official MySQL connector for .NET
+
+Regex: Natural language pattern matching
+
+Documentation References
+Microsoft WPF Documentation
+
+MySQL Connector/NET Documentation

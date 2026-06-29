@@ -62,7 +62,9 @@ namespace CyberAwarenessBot
         {
             try
             {
+                // UPDATE THIS WITH YOUR MYSQL PASSWORD
                 string connectionString = "server=localhost;port=3306;database=cyberawarenessbot;uid=root;pwd=Salome@123;";
+
                 taskRepository = new MySqlTaskRepository(connectionString);
                 taskRepository.InitializeDatabase();
 
@@ -90,32 +92,53 @@ namespace CyberAwarenessBot
 
         private void LoadAsciiArt() => AsciiArtBlock.Text = AsciiArt;
 
+        /// <summary>
+        /// Play greeting audio from embedded resource with fallback to file system
+        /// </summary>
         private void PlayGreetingAudio()
         {
             try
             {
+                // Method 1: Try embedded resource
                 var assembly = Assembly.GetExecutingAssembly();
                 string resourceName = "CyberAwarenessBot.Resources.GreetingAudio.wav";
+
                 using (var stream = assembly.GetManifestResourceStream(resourceName))
                 {
                     if (stream != null)
                     {
                         greetingSoundPlayer = new SoundPlayer(stream);
                         greetingSoundPlayer.Play();
-                    }
-                    else
-                    {
-                        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "GreetingAudio.wav");
-                        if (File.Exists(filePath))
-                        {
-                            greetingSoundPlayer = new SoundPlayer(filePath);
-                            greetingSoundPlayer.Play();
-                        }
+                        activityLogger.Log("Audio", "Greeting audio played from embedded resource");
+                        return;
                     }
                 }
+
+                // Method 2: Try file system (Resources folder)
+                string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "GreetingAudio.wav");
+                if (File.Exists(filePath))
+                {
+                    greetingSoundPlayer = new SoundPlayer(filePath);
+                    greetingSoundPlayer.Play();
+                    activityLogger.Log("Audio", "Greeting audio played from file system");
+                    return;
+                }
+
+                // Method 3: Try relative path
+                string relativePath = Path.Combine("..", "..", "Resources", "GreetingAudio.wav");
+                if (File.Exists(relativePath))
+                {
+                    greetingSoundPlayer = new SoundPlayer(relativePath);
+                    greetingSoundPlayer.Play();
+                    activityLogger.Log("Audio", "Greeting audio played from relative path");
+                    return;
+                }
+
+                activityLogger.Log("Audio", "GreetingAudio.wav not found - continuing without audio");
             }
             catch (Exception ex)
             {
+                activityLogger.Log("Audio Error", $"Failed to play greeting audio: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Failed to play greeting audio: {ex.Message}");
             }
         }
@@ -312,104 +335,142 @@ namespace CyberAwarenessBot
 
         private string HandleDirectReminder(NlpIntentResult intent, string input)
         {
-            string title = intent.ExtractedTitle;
-            if (string.IsNullOrWhiteSpace(title))
-                title = input.Replace("remind me", "").Replace("remind me to", "").Trim();
+            try
+            {
+                string title = intent.ExtractedTitle;
+                if (string.IsNullOrWhiteSpace(title))
+                    title = input.Replace("remind me", "").Replace("remind me to", "").Trim();
 
-            if (string.IsNullOrWhiteSpace(title))
-                return "What would you like me to remind you about?";
+                if (string.IsNullOrWhiteSpace(title))
+                    return "What would you like me to remind you about?";
 
-            DateTime? reminderTime = ParseNaturalLanguageTime(intent.ExtractedTime ?? "tomorrow at 9am");
-            if (!reminderTime.HasValue)
-                reminderTime = DateTime.Now.AddDays(1).Date.AddHours(9);
+                DateTime? reminderTime = ParseNaturalLanguageTime(intent.ExtractedTime ?? "tomorrow at 9am");
+                if (!reminderTime.HasValue)
+                    reminderTime = DateTime.Now.AddDays(1).Date.AddHours(9);
 
-            var task = taskAssistant.AddTask(title, null, reminderTime);
-            RefreshTasks();
-            RefreshActivityLog();
+                var task = taskAssistant.AddTask(title, null, reminderTime);
+                RefreshTasks();
+                RefreshActivityLog();
 
-            string formatted = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
-            return $"✅ Reminder set for '{task.Title}' on {formatted}.";
+                string formatted = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
+                return $"✅ Reminder set for '{task.Title}' on {formatted}.";
+            }
+            catch (Exception ex)
+            {
+                activityLogger.Log("Error", $"Failed to set reminder: {ex.Message}");
+                return $"❌ Error setting reminder: {ex.Message}";
+            }
         }
 
         private string HandleAddTask(NlpIntentResult intent, string input)
         {
-            string taskTitle = intent.ExtractedTitle;
-            if (string.IsNullOrWhiteSpace(taskTitle))
-                taskTitle = input.Trim();
+            try
+            {
+                string taskTitle = intent.ExtractedTitle;
+                if (string.IsNullOrWhiteSpace(taskTitle))
+                    taskTitle = input.Trim();
 
-            if (string.IsNullOrWhiteSpace(taskTitle))
-                return "What task would you like to add?";
+                if (string.IsNullOrWhiteSpace(taskTitle))
+                    return "What task would you like to add?";
 
-            var newTask = taskAssistant.AddTask(taskTitle);
-            RefreshTasks();
-            RefreshActivityLog();
+                var newTask = taskAssistant.AddTask(taskTitle);
+                RefreshTasks();
+                RefreshActivityLog();
 
-            pendingTaskWithReminder = newTask;
-            awaitingReminderResponse = true;
+                pendingTaskWithReminder = newTask;
+                awaitingReminderResponse = true;
 
-            activityLogger.Log("Reminder Prompt", $"Asked user for reminder on task #{newTask.Id}");
-            Dispatcher.Invoke(() => StatusBar.Text = "⏳ Awaiting reminder reply...");
+                activityLogger.Log("Reminder Prompt", $"Asked user for reminder on task #{newTask.Id}");
+                Dispatcher.Invoke(() => StatusBar.Text = "⏳ Awaiting reminder reply...");
 
-            return $"✅ Task added: #{newTask.Id} - {taskTitle}\n\n⏰ Would you like to set a reminder?\n(Reply with: yes, no, or a time like 'in 3 days', 'tomorrow at 3pm', 'Monday at 10am')";
+                return $"✅ Task added: #{newTask.Id} - {taskTitle}\n\n⏰ Would you like to set a reminder?\n(Reply with: yes, no, or a time like 'in 3 days', 'tomorrow at 3pm', 'Monday at 10am')";
+            }
+            catch (Exception ex)
+            {
+                activityLogger.Log("Error", $"Failed to add task: {ex.Message}");
+                return $"❌ Error adding task: {ex.Message}";
+            }
         }
 
         // ===================== REMINDER HANDLING =====================
 
         private string HandleReminderResponse(string input)
         {
-            string lower = input.ToLower().Trim();
-
-            if (lower == "no" || lower == "n" || lower.Contains("no reminder") || lower.Contains("no thanks") || lower.Contains("skip"))
+            try
             {
+                string lower = input.ToLower().Trim();
+
+                // Handle "no" responses
+                if (lower == "no" || lower == "n" || lower.Contains("no reminder") ||
+                    lower.Contains("no thanks") || lower.Contains("skip") || lower.Contains("don't"))
+                {
+                    awaitingReminderResponse = false;
+                    string taskTitle = pendingTaskWithReminder.Title;
+                    pendingTaskWithReminder = null;
+                    Dispatcher.Invoke(() => StatusBar.Text = "");
+                    activityLogger.Log("Reminder Skipped", $"User declined reminder for '{taskTitle}'");
+                    return $"Okay, I won't set a reminder for '{taskTitle}'.";
+                }
+
+                // Handle "yes" – ask for time
+                if (lower == "yes" || lower == "y" || lower == "sure" || lower == "ok" || lower == "yeah")
+                {
+                    Dispatcher.Invoke(() => StatusBar.Text = "⏳ Please provide a time...");
+                    return "⏰ What time would you like to be reminded?\n\nExamples:\n- '4 days'\n- 'in 3 days'\n- 'tomorrow at 3pm'\n- 'next Monday at 9am'\n- 'Wednesday'\n- 'Friday 4:30pm'\n- '2026-07-15 10:00'";
+                }
+
+                // Try to parse a time from the input
+                DateTime? reminderTime = ParseNaturalLanguageTime(input);
+                if (reminderTime.HasValue)
+                {
+                    // Set the reminder in the database
+                    taskAssistant.SetReminder(pendingTaskWithReminder.Id, reminderTime.Value);
+                    RefreshTasks();
+                    RefreshActivityLog();
+
+                    string formattedTime = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
+                    string taskTitle = pendingTaskWithReminder.Title;
+
+                    // Clear state
+                    awaitingReminderResponse = false;
+                    pendingTaskWithReminder = null;
+                    Dispatcher.Invoke(() => StatusBar.Text = "");
+
+                    activityLogger.Log("Reminder Set", $"Reminder set for task '{taskTitle}' at {formattedTime}");
+
+                    return $"✅ Got it! I'll remind you about '{taskTitle}' on {formattedTime}.";
+                }
+                else
+                {
+                    return "❌ I didn't understand that time format. Please try again with:\n\n" +
+                           "Examples:\n" +
+                           "- '4 days'\n" +
+                           "- 'in 3 days'\n" +
+                           "- 'tomorrow at 3pm'\n" +
+                           "- 'next Monday at 9am'\n" +
+                           "- 'Wednesday'\n" +
+                           "- 'Friday 4:30pm'\n" +
+                           "- '2026-07-15 10:00'\n" +
+                           "- or type 'no' to skip the reminder";
+                }
+            }
+            catch (Exception ex)
+            {
+                activityLogger.Log("Error", $"Failed to handle reminder response: {ex.Message}");
                 awaitingReminderResponse = false;
-                string taskTitle = pendingTaskWithReminder.Title;
                 pendingTaskWithReminder = null;
                 Dispatcher.Invoke(() => StatusBar.Text = "");
-                activityLogger.Log("Reminder Skipped", $"User declined reminder for '{taskTitle}'");
-                return $"Okay, I won't set a reminder for '{taskTitle}'.";
-            }
-
-            if (lower == "yes" || lower == "y" || lower == "sure" || lower == "ok" || lower == "yeah")
-            {
-                Dispatcher.Invoke(() => StatusBar.Text = "⏳ Please provide a time...");
-                return "⏰ What time would you like to be reminded?\n\nExamples:\n- '4 days'\n- 'in 3 days'\n- 'tomorrow at 3pm'\n- 'next Monday at 9am'\n- 'Wednesday'\n- 'Friday 4:30pm'\n- '2026-07-15 10:00'";
-            }
-
-            DateTime? reminderTime = ParseNaturalLanguageTime(input);
-            if (reminderTime.HasValue)
-            {
-                taskAssistant.SetReminder(pendingTaskWithReminder.Id, reminderTime.Value);
-                RefreshTasks();
-                RefreshActivityLog();
-
-                string formattedTime = reminderTime.Value.ToString("dddd, MMMM d, yyyy at h:mm tt");
-                string taskTitle = pendingTaskWithReminder.Title;
-
-                awaitingReminderResponse = false;
-                pendingTaskWithReminder = null;
-                Dispatcher.Invoke(() => StatusBar.Text = "");
-
-                activityLogger.Log("Reminder Set", $"Reminder set for task #{pendingTaskWithReminder?.Id ?? 0} at {formattedTime}");
-
-                return $"✅ Got it! I'll remind you about '{taskTitle}' on {formattedTime}.";
-            }
-            else
-            {
-                return "❌ I didn't understand that time format. Please try again with:\n\n" +
-                       "Examples:\n" +
-                       "- '4 days'\n" +
-                       "- 'in 3 days'\n" +
-                       "- 'tomorrow at 3pm'\n" +
-                       "- 'next Monday at 9am'\n" +
-                       "- 'Wednesday'\n" +
-                       "- 'Friday 4:30pm'\n" +
-                       "- '2026-07-15 10:00'\n" +
-                       "- or type 'no' to skip the reminder";
+                return $"❌ Error setting reminder: {ex.Message}";
             }
         }
 
         // ===================== NATURAL LANGUAGE TIME PARSING =====================
 
+        /// <summary>
+        /// Parses natural language time expressions into a DateTime.
+        /// Supports: "in X days/hours", "tomorrow", day names (e.g., "Monday", "next Tuesday"),
+        /// day+time (e.g., "Wednesday at 4pm"), relative, and absolute dates.
+        /// </summary>
         private DateTime? ParseNaturalLanguageTime(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -513,6 +574,7 @@ namespace CyberAwarenessBot
             time = TimeSpan.Zero;
             string lower = input.ToLower();
 
+            // Pattern: "3pm", "3:30pm", "15:30"
             var match = Regex.Match(lower, @"(\d{1,2})(?::(\d{2}))?\s*(am|pm)");
             if (match.Success)
             {
@@ -527,6 +589,7 @@ namespace CyberAwarenessBot
                 return true;
             }
 
+            // 24-hour format: "14:00"
             match = Regex.Match(lower, @"(\d{1,2}):(\d{2})");
             if (match.Success)
             {
@@ -546,28 +609,35 @@ namespace CyberAwarenessBot
 
         private void AddTaskButtonClick(object sender, RoutedEventArgs e)
         {
-            string title = TaskTitleTextBox.Text?.Trim();
-            string description = TaskDescriptionTextBox.Text?.Trim();
-            string reminderInput = TaskReminderTextBox.Text?.Trim();
-
-            if (string.IsNullOrWhiteSpace(title))
+            try
             {
-                MessageBox.Show("Please enter a task title.");
-                return;
+                string title = TaskTitleTextBox.Text?.Trim();
+                string description = TaskDescriptionTextBox.Text?.Trim();
+                string reminderInput = TaskReminderTextBox.Text?.Trim();
+
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    MessageBox.Show("Please enter a task title.");
+                    return;
+                }
+
+                DateTime? reminder = null;
+                if (!string.IsNullOrWhiteSpace(reminderInput) && DateTime.TryParse(reminderInput, out DateTime parsed))
+                    reminder = parsed;
+
+                var task = taskAssistant.AddTask(title, description, reminder);
+                AddBotMessage($"✅ Task added: #{task.Id} - {task.Title}" +
+                              (task.ReminderAt.HasValue ? $"\n⏰ Reminder set for {task.ReminderAt.Value:yyyy-MM-dd HH:mm}" : ""));
+                TaskTitleTextBox.Clear();
+                TaskDescriptionTextBox.Clear();
+                TaskReminderTextBox.Clear();
+                RefreshTasks();
+                RefreshActivityLog();
             }
-
-            DateTime? reminder = null;
-            if (!string.IsNullOrWhiteSpace(reminderInput) && DateTime.TryParse(reminderInput, out DateTime parsed))
-                reminder = parsed;
-
-            var task = taskAssistant.AddTask(title, description, reminder);
-            AddBotMessage($"✅ Task added: #{task.Id} - {task.Title}" +
-                          (task.ReminderAt.HasValue ? $"\n⏰ Reminder set for {task.ReminderAt.Value:yyyy-MM-dd HH:mm}" : ""));
-            TaskTitleTextBox.Clear();
-            TaskDescriptionTextBox.Clear();
-            TaskReminderTextBox.Clear();
-            RefreshTasks();
-            RefreshActivityLog();
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error adding task: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void RefreshTasksButtonClick(object sender, RoutedEventArgs e) => RefreshTasks();
@@ -697,36 +767,50 @@ namespace CyberAwarenessBot
 
         private void SubmitQuizAnswerButtonClick(object sender, RoutedEventArgs e)
         {
-            if (quizSession == null || !quizSession.IsActive)
+            try
             {
-                MessageBox.Show("Start the quiz first.");
-                return;
+                if (quizSession == null || !quizSession.IsActive)
+                {
+                    MessageBox.Show("Start the quiz first.");
+                    return;
+                }
+
+                int selected = GetSelectedQuizOptionIndex();
+                if (selected < 0) { MessageBox.Show("Select an answer first."); return; }
+
+                string feedback;
+                bool correct = quizService.SubmitAnswer(quizSession, selected, out feedback);
+                QuizFeedbackText.Text = feedback;
+                activityLogger.Log("Quiz Answered", $"Question {quizSession.CurrentQuestionIndex + 1} answered. Correct = {correct}.");
+                RefreshActivityLog();
             }
-
-            int selected = GetSelectedQuizOptionIndex();
-            if (selected < 0) { MessageBox.Show("Select an answer first."); return; }
-
-            string feedback;
-            bool correct = quizService.SubmitAnswer(quizSession, selected, out feedback);
-            QuizFeedbackText.Text = feedback;
-            activityLogger.Log("Quiz Answered", $"Question {quizSession.CurrentQuestionIndex + 1} answered. Correct = {correct}.");
-            RefreshActivityLog();
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error submitting answer: {ex.Message}", "Quiz Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void NextQuizQuestionButtonClick(object sender, RoutedEventArgs e)
         {
-            if (quizSession == null) { MessageBox.Show("Start the quiz first."); return; }
-
-            if (quizService.MoveNext(quizSession))
-                DisplayCurrentQuizQuestion();
-            else
+            try
             {
-                QuizQuestionText.Text = "🎉 Quiz Complete!";
-                QuizFeedbackText.Text = quizService.BuildFinalFeedback(quizSession);
-                ClearQuizOptions();
-                activityLogger.Log("Quiz Completed", $"Quiz completed with score {quizSession.Score}/{quizSession.Questions.Count}.");
-                AddBotMessage(quizService.BuildFinalFeedback(quizSession));
-                RefreshActivityLog();
+                if (quizSession == null) { MessageBox.Show("Start the quiz first."); return; }
+
+                if (quizService.MoveNext(quizSession))
+                    DisplayCurrentQuizQuestion();
+                else
+                {
+                    QuizQuestionText.Text = "🎉 Quiz Complete!";
+                    QuizFeedbackText.Text = quizService.BuildFinalFeedback(quizSession);
+                    ClearQuizOptions();
+                    activityLogger.Log("Quiz Completed", $"Quiz completed with score {quizSession.Score}/{quizSession.Questions.Count}.");
+                    AddBotMessage(quizService.BuildFinalFeedback(quizSession));
+                    RefreshActivityLog();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error moving to next question: {ex.Message}", "Quiz Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

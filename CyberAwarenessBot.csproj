@@ -238,9 +238,15 @@
     <None Include="App.config" />
     <!-- Application configuration file -->
   </ItemGroup>
-  <!-- Ensure the Resources folder exists in the project explorer (empty folder placeholder) -->
+  <!-- Audio asset: greeting.wav.
+       Included as Content so it is copied to bin\...\Resources\greeting.wav at build time
+       (this is what SoundPlayer reads from disk at runtime), AND embedded into the assembly
+       as a fallback so playback still works even if the file is missing from the output folder. -->
   <ItemGroup>
-    <Folder Include="Resources\" />
+    <Content Include="Resources\greeting.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <EmbeddedResource Include="Resources\greeting.wav" />
   </ItemGroup>
   <!-- Import the C# targets which drive compilation and build tasks -->
   <ItemGroup>

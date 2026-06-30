@@ -8,10 +8,10 @@
         Height="820"
         Width="1400"
         WindowStartupLocation="CenterScreen"
-        Background="#0F172A"
-        Loaded="Window_Loaded">
+        Background="#0F172A">
 
     <Window.Resources>
+        <!-- Color resources for the application -->
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F172A"/>
         <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#111827"/>
         <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1F2937"/>
@@ -23,6 +23,7 @@
         <SolidColorBrush x:Key="TextMutedBrush" Color="#94A3B8"/>
         <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
 
+        <!-- Global button style -->
         <Style TargetType="Button">
             <Setter Property="Margin" Value="4"/>
             <Setter Property="Padding" Value="10,6"/>
@@ -32,6 +33,7 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
+        <!-- Global text box style -->
         <Style TargetType="TextBox">
             <Setter Property="Margin" Value="4"/>
             <Setter Property="Padding" Value="8"/>
@@ -40,6 +42,7 @@
             <Setter Property="BorderBrush" Value="#334155"/>
         </Style>
 
+        <!-- Global list box style -->
         <Style TargetType="ListBox">
             <Setter Property="Margin" Value="4"/>
             <Setter Property="Background" Value="#0B1220"/>
@@ -58,16 +61,16 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Chat Panel -->
+        <!-- Left Panel: Chat Interface -->
         <Grid Grid.Column="0" Margin="0,0,10,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <!-- New row for status bar -->
             </Grid.RowDefinitions>
 
+            <!-- Header with title, sentiment, and ASCII art -->
             <Border Background="{StaticResource PanelBackgroundBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,10">
                 <StackPanel>
                     <TextBlock Text="CyberGuard AI"
@@ -77,7 +80,7 @@
                     <TextBlock x:Name="SentimentIndicatorText"
                                Margin="0,8,0,0"
                                Foreground="{StaticResource TextMutedBrush}"
-                               Text="Sentiment: 😐 Neutral"/>
+                               Text="Sentiment: Neutral"/>
                     <TextBlock x:Name="AsciiArtBlock"
                                Margin="0,10,0,0"
                                FontFamily="Consolas"
@@ -87,13 +90,14 @@
                 </StackPanel>
             </Border>
 
+            <!-- Chat messages area -->
             <Border Grid.Row="1" Background="{StaticResource PanelBackgroundBrush}" CornerRadius="12" Padding="10">
                 <ScrollViewer x:Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="ChatPanel"/>
                 </ScrollViewer>
             </Border>
 
-            <!-- Input Row -->
+            <!-- User input area -->
             <Grid Grid.Row="2" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -112,15 +116,17 @@
                         Click="SendButtonClick"/>
             </Grid>
 
-            <!-- Status Bar -->
+            <!-- Status bar at bottom -->
             <TextBlock x:Name="StatusBar" Grid.Row="3"
                        Foreground="#FFD700" FontSize="12" 
                        Margin="4,5,4,0" VerticalAlignment="Center"
                        Text=""/>
         </Grid>
 
-        <!-- Right Panel: Tabs -->
+        <!-- Right Panel: Tabbed Interface -->
         <TabControl Grid.Column="1" Background="{StaticResource PanelBackgroundBrush}" Foreground="White">
+
+            <!-- Memory Tab -->
             <TabItem Header="Memory">
                 <Border Background="{StaticResource PanelBackgroundBrush}" Padding="10">
                     <StackPanel>
@@ -132,6 +138,7 @@
                 </Border>
             </TabItem>
 
+            <!-- Tasks Tab -->
             <TabItem Header="Tasks">
                 <Grid Background="{StaticResource PanelBackgroundBrush}" Margin="8">
                     <Grid.RowDefinitions>
@@ -143,6 +150,7 @@
 
                     <TextBlock Text="Cybersecurity Tasks" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="{StaticResource AccentBlueBrush}"/>
 
+                    <!-- Task input fields -->
                     <StackPanel Grid.Row="1">
                         <TextBox x:Name="TaskTitleTextBox" ToolTip="Task title"/>
                         <TextBox x:Name="TaskDescriptionTextBox" ToolTip="Description (optional)"/>
@@ -153,6 +161,7 @@
                         </WrapPanel>
                     </StackPanel>
 
+                    <!-- Tasks list with custom template -->
                     <ListBox x:Name="TasksListBox" Grid.Row="2" Margin="0,10,0,10"
                              HorizontalContentAlignment="Stretch">
                         <ListBox.ItemTemplate>
@@ -161,7 +170,7 @@
                                     <StackPanel>
                                         <TextBlock FontWeight="Bold" FontSize="14" TextWrapping="Wrap"
                                                    Foreground="{StaticResource TextPrimaryBrush}">
-                                            <Run Text="#"/><Run Text="{Binding Id}"/><Run Text=" — "/><Run Text="{Binding Title}"/>
+                                            <Run Text="#"/><Run Text="{Binding Id}"/><Run Text=" -- "/><Run Text="{Binding Title}"/>
                                         </TextBlock>
                                         <TextBlock Margin="0,2,0,0" TextWrapping="Wrap"
                                                    Foreground="{StaticResource TextMutedBrush}"
@@ -178,6 +187,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
 
+                    <!-- Task action buttons -->
                     <WrapPanel Grid.Row="3">
                         <Button Content="Mark Completed" Click="CompleteTaskButtonClick" Background="#22C55E"/>
                         <Button Content="Delete Task" Background="#EF4444" Click="DeleteTaskButtonClick"/>
@@ -185,6 +195,7 @@
                 </Grid>
             </TabItem>
 
+            <!-- Quiz Tab -->
             <TabItem Header="Quiz">
                 <Grid Background="#111827" Margin="8">
                     <Grid.RowDefinitions>
@@ -194,20 +205,22 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="🧠 Cybersecurity Mini-Quiz" 
+                    <TextBlock Text="Cybersecurity Mini-Quiz" 
                                FontSize="18" 
                                FontWeight="Bold" 
                                Foreground="#38BDF8" 
                                Margin="0,0,0,10"/>
 
+                    <!-- Quiz question display -->
                     <TextBlock x:Name="QuizQuestionText"
                                Grid.Row="1"
                                Margin="0,10,0,15"
                                TextWrapping="Wrap"
                                FontSize="16"
                                Foreground="#E5E7EB"
-                               Text="📝 Click 'Start Quiz' to begin the cybersecurity quiz!"/>
+                               Text="Click 'Start Quiz' to begin the cybersecurity quiz!"/>
 
+                    <!-- Quiz options and feedback -->
                     <StackPanel Grid.Row="2" Margin="0,5,0,10">
                         <RadioButton x:Name="Option1Radio" 
                                      GroupName="QuizOptions" 
@@ -236,20 +249,21 @@
                                    FontSize="14"/>
                     </StackPanel>
 
+                    <!-- Quiz control buttons -->
                     <WrapPanel Grid.Row="3" Margin="0,10,0,0">
-                        <Button Content="▶ Start Quiz" 
+                        <Button Content="Start Quiz" 
                                 Click="StartQuizButtonClick" 
                                 Background="#2563EB" 
                                 Foreground="White"
                                 Padding="15,8"
                                 Margin="5"/>
-                        <Button Content="✅ Submit Answer" 
+                        <Button Content="Submit Answer" 
                                 Click="SubmitQuizAnswerButtonClick" 
                                 Background="#2563EB" 
                                 Foreground="White"
                                 Padding="15,8"
                                 Margin="5"/>
-                        <Button Content="➡ Next Question" 
+                        <Button Content="Next Question" 
                                 Click="NextQuizQuestionButtonClick" 
                                 Background="#2563EB" 
                                 Foreground="White"
@@ -259,6 +273,7 @@
                 </Grid>
             </TabItem>
 
+            <!-- Activity Log Tab -->
             <TabItem Header="Activity Log">
                 <Grid Background="{StaticResource PanelBackgroundBrush}" Margin="8">
                     <Grid.RowDefinitions>
@@ -269,11 +284,13 @@
 
                     <TextBlock Text="Recent Activity" FontSize="18" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}"/>
 
+                    <!-- Activity log list -->
                     <ListBox x:Name="ActivityLogListBox"
                              Grid.Row="1"
                              Margin="0,10,0,10"
                              DisplayMemberPath="DisplayText"/>
 
+                    <!-- Log control buttons -->
                     <WrapPanel Grid.Row="2">
                         <Button Content="Refresh Log" Click="RefreshLogButtonClick" Background="#2563EB"/>
                         <Button Content="Show More" Click="ShowMoreLogButtonClick" Background="#2563EB"/>
@@ -282,4 +299,4 @@
             </TabItem>
         </TabControl>
     </Grid>
-</Window>
+</Window>ss

@@ -12,9 +12,12 @@ using System.Reflection;
 
 namespace CyberAwarenessBot
 {
+    /// <summary>
+    /// Main window for the CyberGuard AI application
+    /// </summary>
     public partial class MainWindow : Window
     {
-        // Core services
+        // Core services - removed 'readonly' from engine since it's assigned in InitializeChatbot()
         private ChatbotEngine engine;
         private ITaskRepository taskRepository;
         private IActivityLogger activityLogger;
@@ -40,6 +43,9 @@ namespace CyberAwarenessBot
 ║  ╚═════╝   ╚═╝   ╚═════╝     ║
 ╚══════════════════════════════╝";
 
+        /// <summary>
+        /// Constructor - initializes the window and all services
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -53,11 +59,9 @@ namespace CyberAwarenessBot
             InitializeQuizUI();
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            // Additional startup logic if needed
-        }
-
+        /// <summary>
+        /// Initializes all core services and database connection
+        /// </summary>
         private void InitializeServices()
         {
             try
@@ -82,6 +86,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Initializes the chatbot engine
+        /// </summary>
         private void InitializeChatbot()
         {
             engine = new ChatbotEngine(
@@ -90,10 +97,13 @@ namespace CyberAwarenessBot
             );
         }
 
+        /// <summary>
+        /// Loads the ASCII art into the UI
+        /// </summary>
         private void LoadAsciiArt() => AsciiArtBlock.Text = AsciiArt;
 
         /// <summary>
-        /// Play greeting audio from embedded resource with fallback to file system
+        /// Plays greeting audio from embedded resource with fallback to file system
         /// </summary>
         private void PlayGreetingAudio()
         {
@@ -143,34 +153,51 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Adds the welcome message to the chat
+        /// </summary>
         private void AddWelcomeMessage()
         {
             string welcome = engine.GetWelcomeMessage();
             AddBotMessage(welcome);
         }
 
+        /// <summary>
+        /// Initializes the quiz UI with default values
+        /// </summary>
         private void InitializeQuizUI()
         {
             QuizQuestionText.Text = "📝 Click 'Start Quiz' to begin the cybersecurity quiz!";
+
+            // Simplified object initialization
             Option1Radio.Content = "A. Ready to start?";
             Option1Radio.Visibility = Visibility.Visible;
             Option1Radio.IsChecked = false;
+
             Option2Radio.Content = "B. Click Start Quiz";
             Option2Radio.Visibility = Visibility.Visible;
             Option2Radio.IsChecked = false;
+
             Option3Radio.Content = "C. Test your knowledge";
             Option3Radio.Visibility = Visibility.Visible;
             Option3Radio.IsChecked = false;
+
             Option4Radio.Content = "D. Learn cybersecurity";
             Option4Radio.Visibility = Visibility.Visible;
             Option4Radio.IsChecked = false;
+
             QuizFeedbackText.Text = string.Empty;
         }
 
         // ===================== CHAT UI HELPERS =====================
 
+        /// <summary>
+        /// Adds a user message bubble to the chat
+        /// </summary>
+        /// <param name="message">The user's message</param>
         private void AddUserMessage(string message)
         {
+            // Simplified object initialization
             var container = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -183,17 +210,16 @@ namespace CyberAwarenessBot
                 Background = (Brush)FindResource("UserBubbleBrush"),
                 CornerRadius = new CornerRadius(12, 0, 12, 12),
                 Padding = new Thickness(14, 10, 14, 10),
-                MaxWidth = 480
-            };
-
-            bubble.Child = new TextBlock
-            {
-                Text = message,
-                Foreground = (Brush)FindResource("AccentGreenBrush"),
-                FontFamily = new FontFamily("Consolas"),
-                FontSize = 13,
-                TextWrapping = TextWrapping.Wrap,
-                LineHeight = 20
+                MaxWidth = 480,
+                Child = new TextBlock
+                {
+                    Text = message,
+                    Foreground = (Brush)FindResource("AccentGreenBrush"),
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 13,
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 20
+                }
             };
 
             var avatar = new Border
@@ -203,15 +229,14 @@ namespace CyberAwarenessBot
                 CornerRadius = new CornerRadius(18),
                 Background = (Brush)FindResource("AccentGreenBrush"),
                 Margin = new Thickness(10, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Top
-            };
-
-            avatar.Child = new TextBlock
-            {
-                Text = "👤",
-                FontSize = 18,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Top,
+                Child = new TextBlock
+                {
+                    Text = "👤",
+                    FontSize = 18,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
             };
 
             container.Children.Add(bubble);
@@ -220,6 +245,10 @@ namespace CyberAwarenessBot
             ScrollToBottom();
         }
 
+        /// <summary>
+        /// Adds a bot message bubble to the chat
+        /// </summary>
+        /// <param name="message">The bot's message</param>
         private void AddBotMessage(string message)
         {
             var container = new StackPanel
@@ -235,15 +264,14 @@ namespace CyberAwarenessBot
                 CornerRadius = new CornerRadius(18),
                 Background = new SolidColorBrush(Color.FromRgb(0, 191, 255)),
                 Margin = new Thickness(0, 0, 10, 0),
-                VerticalAlignment = VerticalAlignment.Top
-            };
-
-            avatar.Child = new TextBlock
-            {
-                Text = "🤖",
-                FontSize = 18,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Top,
+                Child = new TextBlock
+                {
+                    Text = "🤖",
+                    FontSize = 18,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
             };
 
             var bubble = new Border
@@ -251,17 +279,16 @@ namespace CyberAwarenessBot
                 Background = (Brush)FindResource("BotBubbleBrush"),
                 CornerRadius = new CornerRadius(0, 12, 12, 12),
                 Padding = new Thickness(14, 10, 14, 10),
-                MaxWidth = 560
-            };
-
-            bubble.Child = new TextBlock
-            {
-                Text = message,
-                Foreground = (Brush)FindResource("TextPrimaryBrush"),
-                FontFamily = new FontFamily("Consolas"),
-                FontSize = 13,
-                TextWrapping = TextWrapping.Wrap,
-                LineHeight = 20
+                MaxWidth = 560,
+                Child = new TextBlock
+                {
+                    Text = message,
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 13,
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 20
+                }
             };
 
             container.Children.Add(avatar);
@@ -270,17 +297,29 @@ namespace CyberAwarenessBot
             ScrollToBottom();
         }
 
+        /// <summary>
+        /// Scrolls the chat view to the bottom
+        /// </summary>
         private void ScrollToBottom() => ChatScrollViewer.ScrollToEnd();
 
         // ===================== INPUT HANDLING =====================
 
+        /// <summary>
+        /// Handles the Send button click
+        /// </summary>
         private void SendButtonClick(object sender, RoutedEventArgs e) => ProcessUserInput();
 
+        /// <summary>
+        /// Handles the Enter key press in the input box
+        /// </summary>
         private void UserInputTextBoxKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter) ProcessUserInput();
         }
 
+        /// <summary>
+        /// Processes the user's input and generates a response
+        /// </summary>
         private void ProcessUserInput()
         {
             string input = UserInputTextBox.Text?.Trim();
@@ -295,6 +334,11 @@ namespace CyberAwarenessBot
 
         // ===================== MAIN INTEGRATION =====================
 
+        /// <summary>
+        /// Handles the integrated input processing with intent recognition
+        /// </summary>
+        /// <param name="input">The user's input</param>
+        /// <returns>The bot's response</returns>
         private string HandleIntegratedInput(string input)
         {
             // Check if we're awaiting a reminder response
@@ -333,6 +377,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handles direct reminder requests
+        /// </summary>
         private string HandleDirectReminder(NlpIntentResult intent, string input)
         {
             try
@@ -371,6 +418,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handles adding a new task
+        /// </summary>
         private string HandleAddTask(NlpIntentResult intent, string input)
         {
             try
@@ -404,6 +454,9 @@ namespace CyberAwarenessBot
 
         // ===================== REMINDER HANDLING =====================
 
+        /// <summary>
+        /// Handles the user's response to a reminder prompt
+        /// </summary>
         private string HandleReminderResponse(string input)
         {
             try
@@ -475,9 +528,10 @@ namespace CyberAwarenessBot
         // ===================== PHRASING HELPERS =====================
 
         /// <summary>
-        /// Describes a future time relative to now in friendly language,
-        /// e.g. "7 days from now", "3 hours from now", or a date for distant times.
+        /// Describes a future time relative to now in friendly language
         /// </summary>
+        /// <param name="when">The future date/time</param>
+        /// <returns>A human-readable description</returns>
         private static string DescribeRelative(DateTime when)
         {
             TimeSpan diff = when - DateTime.Now;
@@ -502,7 +556,6 @@ namespace CyberAwarenessBot
 
         /// <summary>
         /// Lowercases the first character of a phrase so it reads naturally mid-sentence
-        /// (e.g. "Enable two-factor authentication" -> "enable two-factor authentication").
         /// </summary>
         private static string LowerFirst(string s)
         {
@@ -513,10 +566,10 @@ namespace CyberAwarenessBot
         // ===================== NATURAL LANGUAGE TIME PARSING =====================
 
         /// <summary>
-        /// Parses natural language time expressions into a DateTime.
-        /// Supports: "in X days/hours", "tomorrow", day names (e.g., "Monday", "next Tuesday"),
-        /// day+time (e.g., "Wednesday at 4pm"), relative, and absolute dates.
+        /// Parses natural language time expressions into a DateTime
         /// </summary>
+        /// <param name="input">The natural language time string</param>
+        /// <returns>A DateTime or null if parsing fails</returns>
         private DateTime? ParseNaturalLanguageTime(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -615,6 +668,9 @@ namespace CyberAwarenessBot
             return null;
         }
 
+        /// <summary>
+        /// Tries to parse a time from text (e.g., "3pm", "3:30pm", "14:00")
+        /// </summary>
         private bool TryParseTimeFromText(string input, out TimeSpan time)
         {
             time = TimeSpan.Zero;
@@ -653,6 +709,9 @@ namespace CyberAwarenessBot
 
         // ===================== TASK MANAGEMENT (GUI) =====================
 
+        /// <summary>
+        /// Handles the Add Task button click
+        /// </summary>
         private void AddTaskButtonClick(object sender, RoutedEventArgs e)
         {
             try
@@ -686,8 +745,14 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handles the Refresh Tasks button click
+        /// </summary>
         private void RefreshTasksButtonClick(object sender, RoutedEventArgs e) => RefreshTasks();
 
+        /// <summary>
+        /// Refreshes the tasks list from the database
+        /// </summary>
         private void RefreshTasks()
         {
             try
@@ -701,8 +766,14 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Gets the currently selected task
+        /// </summary>
         private CyberTask GetSelectedTask() => TasksListBox.SelectedItem as CyberTask;
 
+        /// <summary>
+        /// Handles the Complete Task button click
+        /// </summary>
         private void CompleteTaskButtonClick(object sender, RoutedEventArgs e)
         {
             var task = GetSelectedTask();
@@ -721,6 +792,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handles the Delete Task button click
+        /// </summary>
         private void DeleteTaskButtonClick(object sender, RoutedEventArgs e)
         {
             var task = GetSelectedTask();
@@ -741,8 +815,14 @@ namespace CyberAwarenessBot
 
         // ===================== QUIZ MANAGEMENT =====================
 
+        /// <summary>
+        /// Handles the Start Quiz button click
+        /// </summary>
         private void StartQuizButtonClick(object sender, RoutedEventArgs e) => StartQuiz();
 
+        /// <summary>
+        /// Starts a new quiz session
+        /// </summary>
         private void StartQuiz()
         {
             try
@@ -764,6 +844,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Displays the current quiz question
+        /// </summary>
         private void DisplayCurrentQuizQuestion()
         {
             if (quizSession == null || quizSession.CurrentQuestion == null)
@@ -786,6 +869,9 @@ namespace CyberAwarenessBot
             if (q.Options.Count >= 4) { Option4Radio.Visibility = Visibility.Visible; Option4Radio.Content = q.Options[3]; Option4Radio.IsChecked = false; }
         }
 
+        /// <summary>
+        /// Clears the quiz options
+        /// </summary>
         private void ClearQuizOptions()
         {
             Option1Radio.Content = "A. Select an answer";
@@ -802,6 +888,9 @@ namespace CyberAwarenessBot
             Option4Radio.IsChecked = false;
         }
 
+        /// <summary>
+        /// Gets the selected quiz option index
+        /// </summary>
         private int GetSelectedQuizOptionIndex()
         {
             if (Option1Radio.IsChecked == true) return 0;
@@ -811,6 +900,9 @@ namespace CyberAwarenessBot
             return -1;
         }
 
+        /// <summary>
+        /// Handles the Submit Quiz Answer button click
+        /// </summary>
         private void SubmitQuizAnswerButtonClick(object sender, RoutedEventArgs e)
         {
             try
@@ -836,6 +928,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Handles the Next Quiz Question button click
+        /// </summary>
         private void NextQuizQuestionButtonClick(object sender, RoutedEventArgs e)
         {
             try
@@ -862,14 +957,23 @@ namespace CyberAwarenessBot
 
         // ===================== ACTIVITY LOG =====================
 
+        /// <summary>
+        /// Handles the Refresh Log button click
+        /// </summary>
         private void RefreshLogButtonClick(object sender, RoutedEventArgs e) => RefreshActivityLog();
 
+        /// <summary>
+        /// Handles the Show More Log button click
+        /// </summary>
         private void ShowMoreLogButtonClick(object sender, RoutedEventArgs e)
         {
             logDisplayCount += 5;
             RefreshActivityLog();
         }
 
+        /// <summary>
+        /// Refreshes the activity log from the database
+        /// </summary>
         private void RefreshActivityLog()
         {
             try
@@ -883,6 +987,9 @@ namespace CyberAwarenessBot
             }
         }
 
+        /// <summary>
+        /// Builds a formatted activity log message
+        /// </summary>
         private string BuildActivityLogMessage(int count)
         {
             var logs = activityLogger.GetRecent(count);
@@ -895,11 +1002,17 @@ namespace CyberAwarenessBot
 
         // ===================== UI UPDATES =====================
 
+        /// <summary>
+        /// Updates the sentiment indicator in the UI
+        /// </summary>
         private void UpdateSentimentIndicator(string sentiment, string emoji)
         {
             Dispatcher.Invoke(() => SentimentIndicatorText.Text = $"Sentiment: {emoji} {sentiment}");
         }
 
+        /// <summary>
+        /// Updates the memory panel in the UI
+        /// </summary>
         private void UpdateMemoryPanel(UserMemory memory)
         {
             Dispatcher.Invoke(() =>

@@ -243,9 +243,6 @@
        (this is what SoundPlayer reads from disk at runtime), AND embedded into the assembly
        as a fallback so playback still works even if the file is missing from the output folder. -->
   <ItemGroup>
-    <Content Include="Resources\greeting.wav">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <EmbeddedResource Include="Resources\greeting.wav" />
   </ItemGroup>
   <!-- Import the C# targets which drive compilation and build tasks -->
